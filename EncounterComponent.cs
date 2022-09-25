@@ -1,47 +1,48 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using static InterfaceComponent;
-using static NodeComponent;
+using static Node;
 
 public class EncounterComponent : MonoBehaviour
 {
-    public class SecureEncounter : IEncounter
+    [Serializable]
+    public class SecureEncounter : Encounter
     {
-        public INode Source { get; }
-        public INode Destination { get; }
         public int TimeElapsed { get; }
-        public void CheckDistance()
+
+        override public void IsNear()
         {
 
         }
-        public void CloseEncounter()
+        override public void CloseEncounter()
         {
 
         }
-        public SecureEncounter(Node src, Node dst)
+        public SecureEncounter(Node src, Node dst) : base(src, dst)
         {
-            Source = src;
-            Destination = dst;
             TimeElapsed = 0;
         }
     }
-    public class MaliciousEncounter : IEncounter
+    [Serializable]
+    public class MaliciousEncounter : Encounter
     {
-        public INode Source { get; }
-        public INode Destination { get; }
         public int TimeElapsed { get; }
         public float InfectionProgress { get; set; }
-        public void CheckDistance()
+        override public void IsNear()
         {
 
         }
-        public void CloseEncounter()
+        override public void CloseEncounter()
         {
 
         }
-        public MaliciousEncounter(INode src, INode dst)
+        /*public IEnumerator InfectionCoroutine(Node victim)
         {
-            Source = src;
-            Destination = dst;
+            //yield return new WaitForSeconds(0.1);
+        }*/
+        public MaliciousEncounter(Node src, Node dst): base(src, dst)
+        {
             TimeElapsed = 0;
             InfectionProgress = 0f;
         }

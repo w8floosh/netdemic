@@ -1,29 +1,29 @@
-using static BundleComponent;
-using static NodeComponent;
 public class InterfaceComponent
 {
-    public interface IEncounter
+    public abstract class Encounter
     {
-        INode Source { get; }
-        INode Destination { get; }
-        int TimeElapsed { get; }
+        public Node Source { get; }
+        public Node Destination { get; }
+        public abstract void IsNear();
+        public abstract void CloseEncounter();
 
-        void CheckDistance();
-        void CloseEncounter();
+        public Encounter(Node source, Node destination)
+        {
+            Source = source;
+            Destination = destination;
+        }
     }
 
     public interface INodeState
     {
-        void SendBundle(IEncounter encounter);
-        void RcvBundle(IEncounter e, Bundle b);
+        void SendBundle(Encounter encounter, Package b);
+        void RcvBundle(Package b);
     }
 
     public interface INode
     {
-        IEncounter EstablishConnection();
-        void showInfo();
-
-        byte[] GeneratePhysicalAddress();
+        Encounter EstablishConnection(Node listener);
+        void ShowInfo();
     }
 
 }

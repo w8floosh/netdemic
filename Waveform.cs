@@ -1,59 +1,97 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+using System.Linq;
+using System.Security;
 using UnityEngine;
 using static SimulationManager;
-using GaussianDistribution = MathNet.Numerics.Distribution.Normal;
+using GaussianDistribution = MathNet.Numerics.Distributions.Normal;
 
+
+
+// usare le gaussiane come timbri. usare gaussiane con campana stretta perché così evidenziano la frequenza fondamentale. media = freq fondamentale, varianza = influenza della fondamentale sulle vicine
+// 1) creo gaussiana sulla base di media e varianza
+// 2) faccio array di intensità frequenze (22000) per l'archetipo e per i nodi normali sommo un delta a ogni cella
+
+[Serializable]
 public class Waveform : MonoBehaviour
 {
-    public int[] SamplesArray { get; private set; }
+    private float[] _spectrum;                                                   // array di NumberOfFrequencies elementi in cui ogni cella indica quante volte la frequenza di indice i è presente
+                                                                                 // rappresenta lo spettro della waveform
+    [Range(0.1f, 2f)] public float NoiseGenerationRange;
 
-    public const byte NoiseGenerationRange = 255;
-
-    public Waveform(Region region = null)
+    public Waveform(Region regionData = null)
     {
-        if (region != null)                                                                                 // genera una waveform sulla base di un archetipo
+        if (regionData.RegionWaveform != null)                                                                          // genera una waveform sulla base di un archetipo
         {
-            GenerateFromExistingWaveform(region.RegionWaveform);                                            // introduce il rumore di generazione nella nuova waveform
+            GenerateFromExistingWaveform(regionData.RegionWaveform);                                                    // introduce il rumore di generazione nella nuova waveform
         }
-        else
+        else                                                                                                            // se no genera un nuovo archetipo vuoto e riempilo
         {
-            SamplesArray = new int[SampleRatePerSecond];                                                    // genera un nuovo archetipo vuoto
+            double mean = NumberOfFrequencies * (regionData.RegionID / NumberOfRegions);                                // la media distingue bene gli archetipi in base al numero di regioni presenti
+            double variance = UnityEngine.Random.Range(5f, 50f);                                                        // la varianza è di massimo 50 frequenze in quanto vogliamo una curva molto appuntita per definire bene l'archetipo
+            Array.Copy(GenerateNewWaveform(mean, Math.Sqrt(variance)), _spectrum, NumberOfFrequencies);                 // crea un nuovo spettro e lo inserisce dentro l'oggetto
         }
     }
 
     private void GenerateFromExistingWaveform(Waveform baseWave)
     {
-        Waveform newWaveform = new();
-        Array.Copy(baseWave.SamplesArray, newWaveform.SamplesArray, baseWave.SamplesArray.Length); // duplica la wave base in un nuovo oggetto e lavoro sulla copia
-        foreach (int s in newWaveform.SamplesArray)
+        Array.Copy(baseWave._spectrum, _spectrum, baseWave._spectrum.Length);    // duplica la wave base inserendola nel nuovo oggetto
+        for (int f = 0; f < NumberOfFrequencies; f++)
         {
-            newWaveform.SamplesArray.SetValue(
-                newWaveform.SamplesArray[s] + UnityEngine.Random.Range(-NoiseGenerationRange / 2, (NoiseGenerationRange + 1) / 2), s);
+            _spectrum[f] += UnityEngine.Random.Range(-NoiseGenerationRange / 2, NoiseGenerationRange / 2);
         }
-        Array.Copy(newWaveform.SamplesArray, this.SamplesArray, SampleRatePerSecond);
-
     }
 
-
-
-    public static int[] GaussianDistributor(double mean, double variance)
+    private float[] GenerateNewWaveform(double mean, double variance)
     {
-        double[] GaussianSamplesNormalized = new double[SampleRatePerSecond];
-        int[] GaussianSamples = new int[SampleRatePerSecond];
-        GaussianDistribution.Samples(GaussianSamplesNormalized, mean, variance); // crea 44100 valori nel range (0,1) dalla distribuzione gaussiana e li mette nell'array di double 
-        for (int s = 0; s < SampleRatePerSecond; s++)
-        {
-            GaussianSamples[s] = (short)Math.Round(GaussianSamplesNormalized[s] * (double)ushort.MaxValue) - short.MaxValue; // denormalizza dal range (0,1) al range (-32768, 32767)
-        }
-        return GaussianSamples; // ritorna l'array dei sample interi per poi copiarli a riga 30 nell'archetipo della regione
+        double[] samples = SampleFromGaussianDistribution(mean, variance);
+        return GenerateProbabilityDensityFunction(samples);
     }
 
+    private float[] GenerateProbabilityDensityFunction(double[] gaussianSamples)
+    {
+        int[] integerSamples = new int[NumberOfFrequencies];
+        long mean = 0;
+        for (int i = 0; i < NumberOfFrequencies; i++)
+        {
+            integerSamples[i] = (int)Math.Floor(gaussianSamples[i]);
+            mean += integerSamples[i];
+        }
+        mean /= NumberOfFrequencies;
+        float[] frequencyProbabilities = new float[NumberOfFrequencies];
+        var counters = from frequency in integerSamples
+                       group frequency by frequency into frequencyCounter
+                       let count = frequencyCounter.Count()
+                       let freq = frequencyCounter.Key
+                       orderby freq ascending
+                       select new { Frequency = frequencyCounter.Key, Count = count };
+
+        for (int f = counters.First().Frequency - 1; f < counters.Last().Frequency; f++)
+        {
+            var frequencyTuple = counters.FirstOrDefault(c => c.Frequency == f);
+            if (frequencyTuple != null)
+            {
+                frequencyProbabilities[f] = (float)Math.Round((float)frequencyTuple.Count / NumberOfFrequencies * 100, 4);
+                UnityEngine.Debug.Log(frequencyTuple.Frequency + " Hz: " + frequencyProbabilities[f]);
+            }
+        }
+        return frequencyProbabilities;
+    }
+
+    private double[] SampleFromGaussianDistribution(double mean, double variance)                   // genera una gaussiana partendo da media e varianza per poi campionare x valori da essa
+    {
+        double[] gaussianSamples = new double[NumberOfFrequencies];
+        GaussianDistribution.Samples(gaussianSamples, mean, Math.Sqrt(variance));                   // campiono 22000 valori double dalla gaussiana                                                          // li converto in interi arrotondandoli all'intero più vicino
+        return gaussianSamples;
+    }
+
+    public float[] GetRegionWaveformSpectrum(GameObject caller)
+    {
+        if (caller.GetComponent<Region>() != null || caller.GetComponent<Node>().Tone == this) return _spectrum;
+        else throw new SecurityException("Attempted security violation: waveform spectrum access restricted to the owner node and its proper region only");
+    }
     public void DisplayWaveform() { }
 
-    public Waveform Interpolate(Waveform victim, Waveform attacker, byte step) { }
+    //public Waveform Interpolate(Waveform victim, Waveform attacker, byte step) { }
 
     // Start is called before the first frame update
     void Start()
