@@ -1,17 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityEngine.UI", "UnityEngine.UI.csproj", "{2284174F-F3FE-2BAF-7C83-D293F9345CF5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityEngine.UI", "UnityEngine.UI.csproj", "{7641B94F-4FC2-D933-C5C0-D65B3B1C99E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netdemic Assembly", "netdemic Assembly.csproj", "{5EDDCC4C-D9C9-6411-DC19-CF72D0ACDEC8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netdemic Assembly", "netdemic Assembly.csproj", "{5153A103-7CDA-78B9-279D-6A983A282D54}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity.2D.Tilemap.Editor", "Unity.2D.Tilemap.Editor.csproj", "{81F083B9-3CA7-FA61-3DD6-8D731AD58993}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity.2D.Tilemap.Editor", "Unity.2D.Tilemap.Editor.csproj", "{971FC646-2CDC-7AF9-0C3A-5BA8DC7F9C58}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity.2D.Sprite.Editor", "Unity.2D.Sprite.Editor.csproj", "{C4D1DFE3-C416-0A0F-3D41-D4658FD44511}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unity.2D.Sprite.Editor", "Unity.2D.Sprite.Editor.csproj", "{553663D2-D95F-2D53-DF29-A75E37F6E79D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityEditor.UI", "UnityEditor.UI.csproj", "{0C093C38-AAC4-63DD-166C-C12632049041}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityEditor.UI", "UnityEditor.UI.csproj", "{EF211728-8796-8957-6811-8D82A990F13E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests.csproj", "{9A95D914-367C-C656-3EBB-4EC4C32D0D3C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests.csproj", "{7C09F1A7-8AFD-8C08-C7D1-65DD6A623D43}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,30 +19,30 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2284174F-F3FE-2BAF-7C83-D293F9345CF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2284174F-F3FE-2BAF-7C83-D293F9345CF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2284174F-F3FE-2BAF-7C83-D293F9345CF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2284174F-F3FE-2BAF-7C83-D293F9345CF5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5EDDCC4C-D9C9-6411-DC19-CF72D0ACDEC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5EDDCC4C-D9C9-6411-DC19-CF72D0ACDEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5EDDCC4C-D9C9-6411-DC19-CF72D0ACDEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5EDDCC4C-D9C9-6411-DC19-CF72D0ACDEC8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{81F083B9-3CA7-FA61-3DD6-8D731AD58993}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{81F083B9-3CA7-FA61-3DD6-8D731AD58993}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{81F083B9-3CA7-FA61-3DD6-8D731AD58993}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{81F083B9-3CA7-FA61-3DD6-8D731AD58993}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C4D1DFE3-C416-0A0F-3D41-D4658FD44511}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C4D1DFE3-C416-0A0F-3D41-D4658FD44511}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C4D1DFE3-C416-0A0F-3D41-D4658FD44511}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C4D1DFE3-C416-0A0F-3D41-D4658FD44511}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0C093C38-AAC4-63DD-166C-C12632049041}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0C093C38-AAC4-63DD-166C-C12632049041}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0C093C38-AAC4-63DD-166C-C12632049041}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0C093C38-AAC4-63DD-166C-C12632049041}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9A95D914-367C-C656-3EBB-4EC4C32D0D3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9A95D914-367C-C656-3EBB-4EC4C32D0D3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9A95D914-367C-C656-3EBB-4EC4C32D0D3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9A95D914-367C-C656-3EBB-4EC4C32D0D3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7641B94F-4FC2-D933-C5C0-D65B3B1C99E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7641B94F-4FC2-D933-C5C0-D65B3B1C99E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7641B94F-4FC2-D933-C5C0-D65B3B1C99E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7641B94F-4FC2-D933-C5C0-D65B3B1C99E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5153A103-7CDA-78B9-279D-6A983A282D54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5153A103-7CDA-78B9-279D-6A983A282D54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5153A103-7CDA-78B9-279D-6A983A282D54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5153A103-7CDA-78B9-279D-6A983A282D54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{971FC646-2CDC-7AF9-0C3A-5BA8DC7F9C58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{971FC646-2CDC-7AF9-0C3A-5BA8DC7F9C58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{971FC646-2CDC-7AF9-0C3A-5BA8DC7F9C58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{971FC646-2CDC-7AF9-0C3A-5BA8DC7F9C58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{553663D2-D95F-2D53-DF29-A75E37F6E79D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{553663D2-D95F-2D53-DF29-A75E37F6E79D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{553663D2-D95F-2D53-DF29-A75E37F6E79D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{553663D2-D95F-2D53-DF29-A75E37F6E79D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF211728-8796-8957-6811-8D82A990F13E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF211728-8796-8957-6811-8D82A990F13E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF211728-8796-8957-6811-8D82A990F13E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF211728-8796-8957-6811-8D82A990F13E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C09F1A7-8AFD-8C08-C7D1-65DD6A623D43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C09F1A7-8AFD-8C08-C7D1-65DD6A623D43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C09F1A7-8AFD-8C08-C7D1-65DD6A623D43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C09F1A7-8AFD-8C08-C7D1-65DD6A623D43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

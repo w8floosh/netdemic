@@ -8,47 +8,27 @@ using static InterfaceComponent;
 
 public class Healthy : NodeState
 {
-    public readonly byte ResistanceLimit;
-    public byte InfectionSteps;
-    private Queue<Package> _incomingPackageQueue;
-    public Queue<Package> IncomingPackageQueue
-    {
-        get { return _incomingPackageQueue; }
-        private set { _incomingPackageQueue = value; }
-    }
-    private short _queueSize;
-    public short QueueSize
-    {
-        get { return _queueSize; }
-        private set
-        {
-            _queueSize = value;
-        }
-    }
+    public byte ResistanceLimit;
+    [SerializeField] private byte _infectionSteps;
 
-
-    public Healthy(byte resistance, short queueSize)
-    {
+    public void Setup(byte resistance) {
         ResistanceLimit = resistance;
-        InfectionSteps = 0;
-        QueueSize = queueSize;
-        IncomingPackageQueue = new Queue<Package>(QueueSize);
+        _infectionSteps = 0;
     }
 
-    override public void SendBundle(Encounter encounter, Package toSend = null)
+
+    override public void SendPackage(Encounter encounter, Package toSend)
     {
-        Package NextBundle = _incomingPackageQueue.Dequeue();
-        encounter.Destination.Status.RcvBundle(NextBundle);
+        encounter.Destination.Status.RcvPackage(toSend);
     }
 
-    override public void RcvBundle(Package bundle)
+    override public void RcvPackage(Package p)
     {
 
     }
 
     void Awake()
     {
-
     }
     void Start()
     {

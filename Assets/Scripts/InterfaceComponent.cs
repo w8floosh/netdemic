@@ -1,31 +1,35 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine;
+
 public class InterfaceComponent
 {
     [Serializable]
-    public abstract class Encounter
+    public abstract class Encounter : MonoBehaviour
     {
-        public Node Source { get; }
-        public Node Destination { get; }
-        public abstract void IsNear();
+        public Node Source;
+        public Node Destination;
+        public LineRenderer Edge;
+        public SimulationManager SimulationManagerInstance;
+        public abstract bool IsNear();
         public abstract void CloseEncounter();
 
-        public Encounter(Node source, Node destination)
-        {
-            Source = source;
-            Destination = destination;
-        }
     }
 
     public interface INodeState
     {
-        void SendBundle(Encounter encounter, Package b);
-        void RcvBundle(Package b);
+        void SendPackage(Encounter encounter, Package b);
+        void RcvPackage(Package b);
+
     }
 
     public interface INode
     {
-        Encounter EstablishConnection(Node listener);
+        GameObject EstablishConnection(GameObject other);
         void ShowInfo();
+        void PackageEnqueue(Package p);
+        Package PackageDequeue();
+        List<GameObject> RefreshEncounters();
     }
 
 }

@@ -1,4 +1,5 @@
 using System;
+using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,8 +8,8 @@ using static SimulationManager;
 [Serializable]
 public class Region : MonoBehaviour
 {
-    [SerializeField] private short _regionID = ++NumberOfRegions;
-    public short RegionID
+    [SerializeField] private byte _regionID = SimulationManagerInstance.ActiveRegions;
+    public byte RegionID
     {
         get         {   return _regionID;   }
         private set {   _regionID = value;  }
@@ -20,33 +21,32 @@ public class Region : MonoBehaviour
         get         {   return _nodeList;    } 
         private set {   _nodeList = value;   }
     }
-    [SerializeField] private Waveform _regionWaveform;
-    public Waveform RegionWaveform
-    {
-        get { return _regionWaveform; }
-        private set { _regionWaveform = value; }
-    }
-
-
-    public Region()
-    {
-        NodeList = new List<Node>();
-        
-    }
+    [SerializeField] public Waveform RegionWaveform;
 
     public void AddNode(Node node)
     {
         NodeList.Add(node);
     }
 
+
     private void Awake()
     {
-        RegionWaveform = gameObject.AddComponent<Waveform>();
+        NodeList = new List<Node>();
+        int NodeCount = UnityEngine.Random.Range(1, SimulationManagerInstance.MaxNodesPerRegion + 1);
+        for (int i = 0; i < NodeCount; i++)
+        {
+            GameObject nodeObject = (GameObject)Instantiate(Resources.Load("Node"));
+            Node node = nodeObject.AddComponent<Node>();
+            nodeObject.name = node.name;
+            node.RegionData = this;
+            AddNode(node);
+            nodeObject.SetActive(true);
+        }
+        Debug.Log("created Region component with " + NodeList.Count + " nodes, regionID: " + _regionID);
     }
     // Start is called before the first frame update
     void Start()
     {
-        
     }
 
     // Update is called once per frame

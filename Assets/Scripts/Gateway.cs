@@ -6,22 +6,22 @@ using static InterfaceComponent;
 public class Gateway : NodeState
 {
     private List<Gateway> _reachableGatewaysList;
-    private Dictionary<string, byte[]> _reachableNodeAddressDictionary;
-    private readonly Region _regionData;
+    private Dictionary<string, string> _reachableNodeAddressDictionary;
+    private Region _regionData;
 
-    public Gateway(Region region)
+    public void Setup(Region regionData)
     {
         this._reachableGatewaysList = new List<Gateway>();
-        this._regionData = region;
-        _reachableNodeAddressDictionary = new Dictionary<string, byte[]>();
+        this._regionData = regionData;
+        _reachableNodeAddressDictionary = new Dictionary<string, string>();
     }
 
-    private byte[] DNSResolve(string name)
+    private string DNSResolve(string name)
     {
         return _reachableNodeAddressDictionary.GetValueOrDefault(name); // prova a trovare una corrispondenza col nome nel dizionario del gateway
     }
 
-    override public void SendBundle(Encounter encounter, Package bundle = null)
+    override public void SendPackage(Encounter encounter, Package bundle = null)
     {
         /*if (encounter.Source.BundleQueue.Count != 0)
         {
@@ -33,16 +33,16 @@ public class Gateway : NodeState
             {
                 encounter.Destination.Status.RcvBundle(dequeued);
             }
-                
+                    
         }*/
     }
 
-    override public void RcvBundle(Package bundle)
+    override public void RcvPackage(Package bundle)
     {
         //BundleQueue.Enqueue(bundle);
     }
 
-    public void AddToDictionary(Node node, byte[] address)
+    public void AddToDictionary(Node node, string address)
     {
         _reachableNodeAddressDictionary.Add(node.Name, address);
     }

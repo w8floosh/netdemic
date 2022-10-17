@@ -9,7 +9,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{9A95D914-367C-C656-3EBB-4EC4C32D0D3C}</ProjectGuid>
+    <ProjectGuid>{7C09F1A7-8AFD-8C08-C7D1-65DD6A623D43}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Tests</AssemblyName>
@@ -707,15 +707,15 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="netdemic Assembly.csproj">
-      <Project>{5EDDCC4C-D9C9-6411-DC19-CF72D0ACDEC8}</Project>
+      <Project>{5153A103-7CDA-78B9-279D-6A983A282D54}</Project>
       <Name>netdemic Assembly</Name>
     </ProjectReference>
     <ProjectReference Include="UnityEditor.UI.csproj">
-      <Project>{0C093C38-AAC4-63DD-166C-C12632049041}</Project>
+      <Project>{EF211728-8796-8957-6811-8D82A990F13E}</Project>
       <Name>UnityEditor.UI</Name>
     </ProjectReference>
     <ProjectReference Include="UnityEngine.UI.csproj">
-      <Project>{2284174F-F3FE-2BAF-7C83-D293F9345CF5}</Project>
+      <Project>{7641B94F-4FC2-D933-C5C0-D65B3B1C99E9}</Project>
       <Name>UnityEngine.UI</Name>
     </ProjectReference>
   </ItemGroup>

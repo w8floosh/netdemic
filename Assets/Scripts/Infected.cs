@@ -1,3 +1,4 @@
+using Codice.CM.Common;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,31 +7,27 @@ using static InterfaceComponent;
 [Serializable]
 public class Infected : NodeState
 {
-    public readonly short InfectionSpeed;
-    private Queue<Package> _packageQueue;
+    [SerializeField] private float _infectionSpeed;
 
-    public Infected(short speed)
-    {
-        InfectionSpeed = speed;
-        _packageQueue = new Queue<Package>();
-    }
-
-    override public void SendBundle(Encounter mEncounter, Package toSend)
+    override public void SendPackage(Encounter mEncounter, Package toSend)
     {
         for (int i = 0; i < UnityEngine.Random.Range(0, 25); i++)
         {
-            mEncounter.Destination.Status.RcvBundle(toSend);
+            mEncounter.Destination.Status.RcvPackage(toSend);
         }
     }
 
-    override public void RcvBundle(Package toSend)
+    override public void RcvPackage(Package toSend)
     {
         UnityEngine.Debug.Log("butto il pacchetto proveniente da (" + toSend.Destination + ", " + toSend.DestinationRegionID + ")");
     }
-
+    public void Setup(short infectionSpeed)
+    {
+        _infectionSpeed = infectionSpeed;
+    }
     void Awake()
     {
-
+        _infectionSpeed = 1;
     }
 
     void Start()

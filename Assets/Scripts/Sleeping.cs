@@ -7,26 +7,21 @@ using static InterfaceComponent;
 [Serializable]
 public class Sleeping : NodeState
 {
-    public WaitForSeconds Cooldown;
-    public byte CooldownTime;
-    private Queue<Package> _packageQueue;
-    public Queue<Package> PackageQueue
+    private WaitForSeconds Cooldown;
+    [SerializeField] private float _cooldownTime;
+
+
+    public void Setup(float cooldown)
     {
-        get { return _packageQueue; }
-        private set { _packageQueue = value; }
+        _cooldownTime = cooldown;
     }
 
-    public Sleeping(byte cooldownTime)
-    {
-        CooldownTime = cooldownTime;
-        _packageQueue = new Queue<Package>();
-    }
-    override public void SendBundle(Encounter mEncounter, Package toSend)
+    override public void SendPackage(Encounter mEncounter, Package toSend)
     {
         throw new NotSupportedException("The node is shut down, thus it cannot send or receive messages.");
     }
 
-    override public void RcvBundle(Package toSend)
+    override public void RcvPackage(Package toSend)
     {
         throw new NotSupportedException("The node is shut down, thus it cannot send or receive messages. " +
                                         "Dropping package from (" + toSend.Destination + ", " + toSend.DestinationRegionID + ")...");
