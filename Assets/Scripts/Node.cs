@@ -77,50 +77,7 @@ public class Node : MonoBehaviour, INode
         return new string(Enumerable.Repeat(chars, length)
             .Select(s => s[random.Next(s.Length)]).ToArray());
     }
-    //private Encounter CreateEncounter() 
-    //{
-    //    GameObject encounterObject = new(this.gameObject.name + " --> ");
-    //    encounterObject.transform.parent = transform;
-    //    Encounter e;
-    //    if (Status is Infected) e = encounterObject.AddComponent<MaliciousEncounter>();
-    //    else e = encounterObject.AddComponent<SecureEncounter>();
-    //    return e;
-    //}
-    //private void OnConnection(Encounter encounter)
-    //{
-    //    encounter.gameObject.SetActive(true);
-    //}
-    //public GameObject EstablishConnection(GameObject other)
-    //{
-    //    // usa raycast: se la distanza di un nodo è minore della sua potenza massima allora lo posso raggiungere e stabilisco una connessione
-    //    //if (Vector3.Distance(transform.position, listener.gameObject.transform.position) > Power) return null;
-    //    Node listener = other.GetComponent<Node>();
-    //    // se trovo un encounter con destinazione uguale al componente nodo di other allora vuol dire che il collegamento già esiste
-    //    if (_currentEncounters.Where(e => e.GetComponent<Encounter>().Destination == listener).Any()) return null;
-    //    GameObject encounterObject;
-    //    Transform child;
-    //    if ((child = transform.Find(this.gameObject.name + " --> " + other.name)) != null)      // se esiste un encounter precedente ripristinalo
-    //    {
-    //        child.gameObject.SetActive(true);
-    //        encounterObject = child.gameObject;
-    //        SimulationManagerInstance.EncounterList.Add(child.gameObject);
-    //    }
-    //    else                                                                                    // altrimenti crealo
-    //    {
-    //        encounterObject = CreateEncounter().gameObject;
-    //        encounterObject.name = this.gameObject.name + " --> " + other.name;
-    //        encounterObject.GetComponent<Encounter>().SetupEncounter(this, listener);
-    //        SimulationManagerInstance.EncounterList.Add(encounterObject);
-    //    }
-    //    //encounterObject.transform.parent = transform;
-    //    //Encounter e;
-    //    //if (Status is Infected)             e = encounterObject.AddComponent<MaliciousEncounter>();
-    //    //else                                e = encounterObject.AddComponent<SecureEncounter>();
-
-
-    //    return encounterObject;
-    //}
-    public GameObject EstablishConnection(GameObject other)
+    public GameObject EstablishConnectionFunzionante(GameObject other) // FUNZIONANTE
     {
         // usa raycast: se la distanza di un nodo è minore della sua potenza massima allora lo posso raggiungere e stabilisco una connessione
         //if (Vector3.Distance(transform.position, listener.gameObject.transform.position) > Power) return null;
@@ -135,6 +92,31 @@ public class Node : MonoBehaviour, INode
         else e = encounterObject.AddComponent<SecureEncounter>();
 
         e.SetupEncounter(this, listener);
+        return encounterObject;
+    }
+    public GameObject EstablishConnection(GameObject other) 
+    {
+        Node listener = other.GetComponent<Node>();
+        // se trovo un encounter con destinazione uguale al componente nodo di other allora vuol dire che il collegamento già esiste
+        if (_currentEncounters.Where(e => e.GetComponent<Encounter>().Destination == listener).Any()) return null;
+
+        GameObject encounterObject;
+        Transform child;
+        if ((child = transform.Find(this.gameObject.name + " --> " + other.name)) == null) 
+        {
+            encounterObject = new(this.gameObject.name + " --> " + other.name);
+            encounterObject.transform.parent = transform;
+            Encounter e;
+            if (Status is Infected) e = encounterObject.AddComponent<MaliciousEncounter>();
+            else e = encounterObject.AddComponent<SecureEncounter>();
+            e.SetupEncounter(this, listener);
+        }
+        else
+        {
+            encounterObject = child.gameObject;
+        }
+        encounterObject.SetActive(true);
+
         return encounterObject;
     }
     public void PackageEnqueue(Package p)

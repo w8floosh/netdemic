@@ -24,6 +24,7 @@ public class SimulationManager : MonoBehaviour
     public WaitForSeconds WaitForBroadcast;
     public LayerMask RegionLayer;
     public LayerMask NodeLayer;
+    public LayerMask VirusLayer;
     public Waveform VirusWaveform;
     public List<GameObject> VirusSources;
     //private GameObject _virusSource;
@@ -65,7 +66,6 @@ public class SimulationManager : MonoBehaviour
             _virusSource.transform.parent = virusList.transform;
             VirusSources.Add(_virusSource);
             _virusSource.SetActive(true);
-
         }
         Debug.Log("simulation initialized");
 

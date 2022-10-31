@@ -21,7 +21,7 @@ public class InterfaceComponent
             gameObject.SetActive(false);
             //SimulationManagerInstance.EncounterList.RemoveAll(e => e == gameObject);
             Source.GetComponent<Node>().CurrentEncounters.RemoveAll(e => e == gameObject);
-            Destroy(gameObject);
+            //Destroy(gameObject);
         }
 
 

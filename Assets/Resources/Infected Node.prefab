@@ -12,6 +12,10 @@ PrefabInstance:
       value: Infected Node
       objectReference: {fileID: 0}
     - target: {fileID: 3819500276025195663, guid: 68582558ad851b647aac31903f7475ab, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3819500276025195663, guid: 68582558ad851b647aac31903f7475ab, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}

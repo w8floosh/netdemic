@@ -38,11 +38,12 @@ public class SimulationVisualizer : MonoBehaviour
     public readonly int NetworkOrtographicSize = 50;
     public readonly int RegionOrtographicSize = 12;
     public readonly int NodeOrtographicSize = 5;
+    public GameObject VisualizingRegion;
+    public GameObject VisualizingNode;
     private List<(Vector3 position, Region region)> _meshGrid;
     private GameObject _regions;
     private Vector3 _originalPosition;
-    private GameObject _visualizingRegion;
-    private GameObject _visualizingNode;
+    
     public class NodeUIEvent : UnityEvent<Node> { }
     public class RegionUIEvent : UnityEvent<Region> { }
 
@@ -111,7 +112,7 @@ public class SimulationVisualizer : MonoBehaviour
             int index = UnityEngine.Random.Range(0, slots.Count);
             GameObject regionObject = r.gameObject;
             regionObject.name = "Region " + r.RegionID;
-            regionObject.transform.position = new Vector3(slots[index].position.x, slots[index].position.y, -1);
+            regionObject.transform.position = new Vector3(slots[index].position.x, slots[index].position.y, 0);
             regionObject.transform.parent = _regions.transform;
             _meshGrid[_meshGrid.IndexOf(slots[index])] = new(slots[index].position, r);
             foreach (Node n in r.NodeList)
@@ -132,6 +133,36 @@ public class SimulationVisualizer : MonoBehaviour
         TopRightPoint = SimulationVisualizerInstance.SimulationCamera.ViewportToWorldPoint(Vector2.one);
         Debug.Log("BottomLeftPoint: " + BottomLeftPoint + " TopRightPoint: " + TopRightPoint);
     }
+    private void UpdateEncounterGraphics(GameObject e)
+    {
+        Encounter ec = e.GetComponent<Encounter>();
+        ec.Edge.SetPositions(new Vector3[2]
+        {
+            ec.Source.transform.position,
+            ec.Destination.transform.position
+        });
+        if (ec is MaliciousEncounter)
+        {
+            if (ec.IsBusy) ec.Edge.startColor = ec.Edge.endColor = Color.red;
+            else
+            {
+                ec.Edge.startColor = new Color(255, 165, 0);
+                ec.Edge.endColor = Color.yellow;
+            }
+        }
+        else
+        {
+            if (ec.IsBusy)
+            {
+                ec.Edge.startColor = ec.Edge.endColor = Color.green;
+            }
+            else
+            {
+                ec.Edge.startColor = Color.cyan;
+                ec.Edge.endColor = Color.magenta;
+            }
+        }
+    }
     public void DrawEncounters()
     {
         foreach (Region r in SimulationManagerInstance.RegionList)
@@ -140,33 +171,17 @@ public class SimulationVisualizer : MonoBehaviour
             {
                 foreach(GameObject e in n.CurrentEncounters)
                 {
-                    Debug.Log(e.name);
-                    Encounter ec = e.GetComponent<Encounter>();
-                    ec.Edge.SetPositions(new Vector3[2]
-                    {
-                                    ec.Source.transform.position,
-                                    ec.Destination.transform.position
-                    });
-                    if (ec.IsBusy)
-                    {
-                        if (ec is MaliciousEncounter)
-                        {
-                            ec.Edge.startColor = Color.red;
-                            ec.Edge.endColor = Color.red;
-                        }
-                        else
-                        {
-                            ec.Edge.startColor = Color.green;
-                            ec.Edge.endColor = Color.green;
-                        }
-
-                    }
-                    else
-                    {
-                        ec.Edge.startColor = Color.cyan;
-                        ec.Edge.endColor = Color.magenta;
-                    }
+                    UpdateEncounterGraphics(e);
                 }
+            }
+        }
+        foreach (GameObject v in SimulationManagerInstance.VirusSources)
+        {
+            Node vn = v.GetComponent<Node>();
+            foreach(GameObject e in vn.CurrentEncounters)
+            {
+                UpdateEncounterGraphics(e);
+
             }
         }
         //foreach(GameObject e in SimulationManagerInstance.EncounterList)
@@ -213,81 +228,161 @@ public class SimulationVisualizer : MonoBehaviour
             OnZoomOut.Invoke();
         }
     }
-    private RaycastHit2D CheckRaycastedTo() 
+    private RaycastHit2D CheckRaycastedTo()
     {
         Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
         RaycastHit2D hit;
         ContactFilter2D contactFilter;
-        if (Camera.main.orthographicSize == RegionOrtographicSize)
-        {
+        if (VisualizingRegion == null)
             contactFilter = new()
             {
-                layerMask = SimulationManagerInstance.NodeLayer
+                layerMask = 
+                    SimulationManagerInstance.NodeLayer | 
+                    SimulationManagerInstance.RegionLayer | 
+                    SimulationManagerInstance.VirusLayer
             };
-        }
         else
-        {
             contactFilter = new()
             {
-                layerMask = SimulationManagerInstance.RegionLayer
+                layerMask =
+                    SimulationManagerInstance.NodeLayer |
+                    SimulationManagerInstance.VirusLayer
             };
-        }
-        Debug.Log(ray.origin + " " + ray.direction);
-        Debug.DrawLine(ray.origin, Vector3.one, Color.yellow);
-        Debug.DrawRay(ray.origin, ray.direction, Color.yellow);
-        hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, contactFilter.layerMask);
+        //Debug.Log(ray.origin + " " + ray.direction);
+        //Debug.DrawLine(ray.origin, Vector3.one, Color.yellow);
+        //Debug.DrawRay(ray.origin, ray.direction, Color.yellow);
+        hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, contactFilter.layerMask, -1f);
         return hit;
     }
     private void ZoomIn()
     {
         Debug.Log("zooming in");
-        if (Camera.main.orthographicSize == NodeOrtographicSize) return;
         RaycastHit2D hit = CheckRaycastedTo();
-        if (hit.collider is null)
-        {
-            Debug.Log("not clicked region");
-            return;
-        }
+        if (hit.collider is null) return;
         else Debug.Log(hit.collider.gameObject.name);
-        if (Camera.main.orthographicSize == NetworkOrtographicSize)
+        Region r;
+        Node n;
+        Debug.Log(hit.collider.gameObject.layer + " " + SimulationManagerInstance.RegionLayer.value + " " + SimulationManagerInstance.RegionLayer);
+        if (1 << hit.collider.gameObject.layer == SimulationManagerInstance.RegionLayer.value)
         {
-            Debug.Log("LV0");
+            r = hit.collider.transform.GetComponent<Region>();
             Camera.main.orthographicSize = RegionOrtographicSize;
             Camera.main.transform.position = hit.transform.position;
-            _visualizingRegion = hit.collider.gameObject;
-            Region r = hit.collider.transform.GetChild(0).gameObject.GetComponent<Node>().RegionData;
-            Debug.Log(r);
+            VisualizingRegion = hit.collider.gameObject;
             OnShowRegionInfo.Invoke(r);
         }
-        else if (Camera.main.orthographicSize == RegionOrtographicSize && hit.collider.gameObject.TryGetComponent(out Node n))
+        else if (1 << hit.collider.gameObject.layer == SimulationManagerInstance.NodeLayer.value)
         {
-            Debug.Log("LV1");
+            r = hit.collider.transform.parent.GetComponent<Region>();
+            n = hit.collider.transform.GetComponent<Node>();
             Camera.main.orthographicSize = NodeOrtographicSize;
             Camera.main.transform.position = hit.transform.position;
-            _visualizingNode = hit.collider.gameObject;
+            VisualizingNode = hit.collider.gameObject;
+            OnShowRegionInfo.Invoke(r);
             OnShowNodeInfo.Invoke(n);
         }
-        else return;
+        else if (1 << hit.collider.gameObject.layer == SimulationManagerInstance.VirusLayer.value)
+        {
+            n = hit.collider.transform.GetComponent<Node>();
+            Camera.main.orthographicSize = NodeOrtographicSize;
+            Camera.main.transform.position = hit.transform.position;
+            VisualizingNode = hit.collider.gameObject;
+            OnShowNodeInfo.Invoke(n);
+        }
     }
 
     private void ZoomOut()
     {
         Debug.Log("zooming out");
-        if (Camera.main.orthographicSize == NodeOrtographicSize)
-        {
-            Camera.main.transform.position = _visualizingRegion.transform.position;
-            Camera.main.orthographicSize = RegionOrtographicSize;
-            NodePanel.SetActive(false);
-        }
-        else if (Camera.main.orthographicSize == RegionOrtographicSize)
-        {
-            Camera.main.transform.position = _originalPosition;
-            Camera.main.orthographicSize = NetworkOrtographicSize;
-            RegionPanel.SetActive(false);
-        }
-        else return;
-
+        Camera.main.orthographicSize = NetworkOrtographicSize;
+        Camera.main.transform.position = _originalPosition;
+        NodePanel.SetActive(false);
+        VisualizingNode = null;
+        RegionPanel.SetActive(false);
+        VisualizingRegion = null;
     }
+    //private RaycastHit2D CheckRaycastedTo() //funzionante 
+    //{
+    //    Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+    //    RaycastHit2D hit;
+    //    ContactFilter2D contactFilter;
+    //    if (Camera.main.orthographicSize == RegionOrtographicSize)
+    //    {
+    //        contactFilter = new()
+    //        {
+    //            layerMask = SimulationManagerInstance.NodeLayer
+    //        };
+    //    }
+    //    else
+    //    {
+    //        contactFilter = new()
+    //        {
+    //            layerMask = SimulationManagerInstance.RegionLayer | SimulationManagerInstance.VirusLayer
+    //        };
+    //    }
+    //    Debug.Log(ray.origin + " " + ray.direction);
+    //    Debug.DrawLine(ray.origin, Vector3.one, Color.yellow);
+    //    Debug.DrawRay(ray.origin, ray.direction, Color.yellow);
+    //    hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, contactFilter.layerMask);
+    //    return hit;
+    //}
+    //private void ZoomIn() //funzionante
+    //{
+    //    Debug.Log("zooming in");
+    //    if (Camera.main.orthographicSize == NodeOrtographicSize) return;
+    //    RaycastHit2D hit = CheckRaycastedTo();
+    //    if (hit.collider is null)
+    //    {
+    //        Debug.Log("not clicked region");
+    //        return;
+    //    }
+    //    else Debug.Log(hit.collider.gameObject.name);
+    //    if (Camera.main.orthographicSize == NetworkOrtographicSize)
+    //    {
+    //        if (SimulationManagerInstance.VirusSources.Contains(hit.collider.gameObject))
+    //        {
+    //            Camera.main.orthographicSize = NodeOrtographicSize;
+    //            Camera.main.transform.position = hit.transform.position;
+    //            VisualizingNode = hit.collider.gameObject;
+    //            OnShowNodeInfo.Invoke(VisualizingNode.GetComponent<Node>());
+    //        }
+    //        Debug.Log("LV0");
+    //        Camera.main.orthographicSize = RegionOrtographicSize;
+    //        Camera.main.transform.position = hit.transform.position;
+    //        VisualizingRegion = hit.collider.gameObject;
+    //        Region r = hit.collider.transform.GetChild(0).gameObject.GetComponent<Node>().RegionData;
+    //        Debug.Log(r);
+    //        OnShowRegionInfo.Invoke(r);
+    //    }
+    //    else if (Camera.main.orthographicSize == RegionOrtographicSize && hit.collider.gameObject.TryGetComponent(out Node n))
+    //    {
+    //        Debug.Log("LV1");
+    //        Camera.main.orthographicSize = NodeOrtographicSize;
+    //        Camera.main.transform.position = hit.transform.position;
+    //        VisualizingNode = hit.collider.gameObject;
+    //        OnShowNodeInfo.Invoke(n);
+    //    }
+    //    else return;
+    //}
+
+    //private void ZoomOut() //funzionante
+    //{
+    //    Debug.Log("zooming out");
+    //    if (Camera.main.orthographicSize == NodeOrtographicSize)
+    //    {
+    //        Camera.main.transform.position = VisualizingRegion.transform.position;
+    //        Camera.main.orthographicSize = RegionOrtographicSize;
+    //        NodePanel.SetActive(false);
+    //    }
+    //    else if (Camera.main.orthographicSize == RegionOrtographicSize)
+    //    {
+    //        Camera.main.transform.position = _originalPosition;
+    //        Camera.main.orthographicSize = NetworkOrtographicSize;
+    //        RegionPanel.SetActive(false);
+    //    }
+    //    else return;
+
+    //}
     private void OpenNodeInfoPanel(Node nodeData)
     {
         //CanvasRenderer[] fields = gameObject.GetComponentsInChildren<CanvasRenderer>(includeInactive: true);
@@ -303,7 +398,12 @@ public class SimulationVisualizer : MonoBehaviour
         ///* Energy */
         nodeFields[3].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.EnergyLevel;
         ///* Region ID */
-        nodeFields[4].transform.GetChild(0).gameObject.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = Convert.ToInt32(nodeData.RegionData.RegionID).ToString();
+        if (nodeData.RegionData != null)
+            nodeFields[4].transform.GetChild(0).gameObject.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = Convert.ToInt32(nodeData.RegionData.RegionID).ToString();
+        else
+        {
+            nodeFields[4].transform.GetChild(0).gameObject.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = "virus";
+        }
         ///* Power */
         nodeFields[5].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.Power;
         ///* Speed */
@@ -321,7 +421,7 @@ public class SimulationVisualizer : MonoBehaviour
         NodePanel.SetActive(true);
 
         ///* Waveform */
-        _visualizingNode = nodeData.gameObject;
+        VisualizingNode = nodeData.gameObject;
         UpdateWaveformGraphicsAsync(true);
     }
     private void OpenRegionInfoPanel(Region regionData)
@@ -329,7 +429,7 @@ public class SimulationVisualizer : MonoBehaviour
         GameObject[] regionFields = new GameObject[RegionPanel.transform.childCount];
         for (int i = 0; i < RegionPanel.transform.childCount; i++)
         {
-            Debug.Log(RegionPanel.transform.GetChild(i));
+            //Debug.Log(RegionPanel.transform.GetChild(i));
             regionFields[i] = RegionPanel.transform.GetChild(i).gameObject;
         }
         /* Name */
@@ -362,10 +462,10 @@ public class SimulationVisualizer : MonoBehaviour
             }
             else tableEntry.gameObject.SetActive(false);
         }
-        RegionPanel.SetActive(true);
         /* Waveform */
-        _visualizingRegion = regionData.gameObject;
-        UpdateWaveformGraphicsAsync(false);
+        VisualizingRegion = regionData.gameObject;
+        if (!RegionPanel.activeInHierarchy) UpdateWaveformGraphicsAsync(false);
+        RegionPanel.SetActive(true);
     }
     private Vector3[] CreateWaveformGraphics(float[] waveformToDisplay, float[] notMinValues)
     {
@@ -438,11 +538,11 @@ public class SimulationVisualizer : MonoBehaviour
         float[] waveformToDisplay;
         if (isNode) {
             spectrumLine = NodePanel.GetComponentInChildren<LineRenderer>();
-            waveformToDisplay = _visualizingNode.GetComponent<Node>().Tone.GetSpectrum(gameObject);
+            waveformToDisplay = VisualizingNode.GetComponent<Node>().Tone.GetSpectrum(gameObject);
         }
         else {
             spectrumLine = RegionPanel.GetComponentInChildren<LineRenderer>();
-            waveformToDisplay = _visualizingRegion.GetComponent<Region>().RegionWaveform.GetSpectrum(gameObject);
+            waveformToDisplay = VisualizingRegion.GetComponent<Region>().RegionWaveform.GetSpectrum(gameObject);
         }
         float min = waveformToDisplay.Min();
         float[] notMinValues = waveformToDisplay.Where(s => s != min).ToArray();
@@ -475,8 +575,6 @@ public class SimulationVisualizer : MonoBehaviour
             SimulationVisualizerInstance = this;
             _originalPosition = gameObject.transform.position;
             DontDestroyOnLoad(gameObject);
-            _regions = new GameObject("Visualized regions");
-            _regions.transform.position = transform.position;
             controls = new Controls();
             OnZoomIn = new();
             OnZoomOut = new();
@@ -492,6 +590,8 @@ public class SimulationVisualizer : MonoBehaviour
             controls.SimulationInteraction.Enable();
             controls.SimulationInteraction.ZoomIn.performed += ZoomInAction;
             controls.SimulationInteraction.ZoomOut.performed += ZoomOutAction;
+            VisualizingNode = null;
+            VisualizingRegion = null;
         }
         else Destroy(gameObject);
     }
@@ -509,7 +609,7 @@ public class SimulationVisualizer : MonoBehaviour
         DrawEncounters();
         if (Camera.main.orthographicSize == NodeOrtographicSize)
         {
-            Camera.main.transform.position = _visualizingNode.transform.position;
+            Camera.main.transform.position = VisualizingNode.transform.position;
         }
     }
 

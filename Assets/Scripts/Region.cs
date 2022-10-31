@@ -47,7 +47,7 @@ public class Region : MonoBehaviour
             GameObject nodeObject = (GameObject)Instantiate(Resources.Load("Node"));
             Node node = nodeObject.AddComponent<Node>();
             nodeObject.name = node.name;
-            node.RegionData = this;
+            node.RegionData = this; // NON TI DIMENTICARE!!!!!!!
             AddNode(node);
             nodeObject.SetActive(true);
         }

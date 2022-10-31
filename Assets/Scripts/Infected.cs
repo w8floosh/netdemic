@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using static InterfaceComponent;
+using static SimulationVisualizer;
 
 [Serializable]
 public class Infected : NodeState

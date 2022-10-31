@@ -125,6 +125,10 @@ public class Waveform : MonoBehaviour
                 victim.Tone._spectrum[i] = Mathf.Lerp(toEdit._spectrum[i], source._spectrum[i], step/(float)victim.ResistanceLimit);
             }
         }
+        if (changed && SimulationVisualizerInstance.RegionPanel.activeInHierarchy && victim.RegionData == SimulationVisualizerInstance.VisualizingRegion.GetComponent<Region>())
+        {
+            SimulationVisualizerInstance.OnShowRegionInfo.Invoke(victim.RegionData);
+        }
         if (changed && SimulationVisualizerInstance.NodePanel.activeInHierarchy)
         {
             SimulationVisualizerInstance.UpdateWaveformGraphicsAsync(true);
