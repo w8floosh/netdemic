@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static SimulationManager;
 
 public class InterfaceComponent
 {
@@ -10,9 +11,19 @@ public class InterfaceComponent
         public Node Source;
         public Node Destination;
         public LineRenderer Edge;
-        public SimulationManager SimulationManagerInstance;
+        public bool IsBusy;
+        public float TimeElapsed { get; protected set; }
         public abstract bool IsNear();
-        public abstract void CloseEncounter();
+        public abstract void SetupEncounter(Node src, Node dst);
+        public void CloseEncounter()
+        {
+            // TROIAIO
+            gameObject.SetActive(false);
+            //SimulationManagerInstance.EncounterList.RemoveAll(e => e == gameObject);
+            Source.GetComponent<Node>().CurrentEncounters.RemoveAll(e => e == gameObject);
+            Destroy(gameObject);
+        }
+
 
     }
 
@@ -29,7 +40,7 @@ public class InterfaceComponent
         void ShowInfo();
         void PackageEnqueue(Package p);
         Package PackageDequeue();
-        List<GameObject> RefreshEncounters();
+        List<GameObject> RefreshEncounters(List<Collider2D> nodes);
     }
 
 }

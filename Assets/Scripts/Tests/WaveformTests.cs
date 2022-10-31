@@ -13,7 +13,7 @@ public class WaveformTests
     {
         var watch = Stopwatch.StartNew();
         
-        double[] gaussianSamples = NewWaveform(300, 5);
+        double[] gaussianSamples = NewWaveform(3000, 500);
         int[] integerSamples = new int[testSamples];
         long mean = 0;
         for (int i = 0; i < testSamples; i++){
@@ -26,7 +26,7 @@ public class WaveformTests
         watch.Start();
 
         mean /= testSamples;
-        UnityEngine.Debug.Log("Media: " + mean + " | Media iniziale: 300");
+        UnityEngine.Debug.Log("Media: " + mean + " | Media iniziale: 3000");
         float[] frequencyProbabilities = new float[testSamples];
         var counters = from frequency in integerSamples
                        group frequency by frequency into frequencyCounter

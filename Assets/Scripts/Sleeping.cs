@@ -7,13 +7,11 @@ using static InterfaceComponent;
 [Serializable]
 public class Sleeping : NodeState
 {
-    private WaitForSeconds Cooldown;
-    [SerializeField] private float _cooldownTime;
-
-
-    public void Setup(float cooldown)
+    public void Setup(NodeState lastStatus, float cooldown)
     {
-        _cooldownTime = cooldown;
+        Destroy(this, cooldown);
+        gameObject.GetComponent<Node>().Status = lastStatus;
+        lastStatus.enabled = true;
     }
 
     override public void SendPackage(Encounter mEncounter, Package toSend)

@@ -2,25 +2,23 @@ using System;
 using System.Collections;
 using UnityEngine;
 using static InterfaceComponent;
+using static SimulationManager;
+
 
 [Serializable]
 public class SecureEncounter : Encounter
 {
-    public int TimeElapsed { get; }
-
     override public bool IsNear()
     {
+        Debug.Log("Distanza " + name + ": " + Vector3.Distance(Source.transform.position, Destination.transform.position));
+        Debug.Log("Potenza sorgente: " + Source.Power + " " + (Vector3.Distance(Source.transform.position, Destination.transform.position) > Source.Power ? "IRRAGGIUNGIBILE" : "RAGGIUNGIBILE"));
+
         if (Vector3.Distance(Source.transform.position, Destination.transform.position) > Source.Power) return false;
         return true;
     }
-    override public void CloseEncounter()
+
+    override public void SetupEncounter(Node src, Node dst)
     {
-        SimulationManagerInstance.EncounterList.Remove(gameObject);
-        Destroy(gameObject);
-    }
-    public void SetupEncounter(Node src, Node dst)
-    {
-        SimulationManagerInstance = SimulationManager.SimulationManagerInstance;
         Source = src;
         Destination = dst;
         Edge = gameObject.AddComponent<LineRenderer>();
@@ -29,17 +27,20 @@ public class SecureEncounter : Encounter
         Edge.SetPosition(1, Destination.transform.position);
         Edge.startColor = Color.cyan;
         Edge.endColor = Color.magenta;
-        Edge.startWidth = .05f;
+        Edge.startWidth = .01f;
         Edge.endWidth = .05f;
-        SimulationManagerInstance.EncounterList.Add(gameObject);
+        Edge.numCapVertices = 16;
+        IsBusy = false;
+        // TROIAIO
+        //SimulationManagerInstance.EncounterList.Add(gameObject);
     }
     private void Awake()
     {
-            
+        TimeElapsed = 0;
     }
-    private void FixedUpdate()
+    private void Update()
     {
-        if (!IsNear()) CloseEncounter();
+        TimeElapsed += Time.deltaTime;
     }
 
 }

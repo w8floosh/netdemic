@@ -1,25 +1,88 @@
 using JetBrains.Annotations;
+using PlasticPipe.PlasticProtocol.Messages;
 using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
+using TMPro;
 using static InterfaceComponent;
+using static SimulationManager;
+using UnityEngine.UI;
+using System;
+using MathNet.Numerics.Statistics;
+using static System.Net.Mime.MediaTypeNames;
+using System.Drawing.Drawing2D;
+using Unity.Jobs;
+using Unity.Collections;
+using System.Threading.Tasks;
 
 public class SimulationVisualizer : MonoBehaviour
 {
     public static SimulationVisualizer SimulationVisualizerInstance;
     public Camera SimulationCamera;
-    public SimulationManager SimulationManager;
+    //public SimulationManager SimulationManager;
     public int MeshGridCols;
     public int MeshGridRows;
+    public Vector3 BottomLeftPoint;
+    public Vector3 TopRightPoint;
+    public Controls controls;
+    public GameObject RegionPanel;
+    public GameObject NodePanel;
+    public UnityEvent OnZoomIn;
+    public UnityEvent OnZoomOut;
+    public UnityEvent<Node> OnShowNodeInfo;
+    public UnityEvent<Region> OnShowRegionInfo;
+    public readonly int NetworkOrtographicSize = 50;
+    public readonly int RegionOrtographicSize = 12;
+    public readonly int NodeOrtographicSize = 5;
     private List<(Vector3 position, Region region)> _meshGrid;
-    private GameObject _stubs;
+    private GameObject _regions;
+    private Vector3 _originalPosition;
+    private GameObject _visualizingRegion;
+    private GameObject _visualizingNode;
+    public class NodeUIEvent : UnityEvent<Node> { }
+    public class RegionUIEvent : UnityEvent<Region> { }
 
+    public struct WaveformGraphicsJob : IJobParallelFor
+    {
+        public NativeArray<Vector3> ControlPoints;
+        public NativeArray<Vector3> Results;
+        public NativeArray<float> WaveformToDisplay;
+        public float minHzX;
+        public float maxHzX;
+        public float minPercentageY;
+        public float maxPercentageY;
+        public int j;
+        public int firstValueIndex;
+        public void Execute(int i)
+        {
+            if (i < 2 || i >= ControlPoints.Length - 2)
+            {
+                Debug.Log(Results.Length);
+                if (i < 2) j = 0;
+                Results[i] = ControlPoints[i];
+            }
+
+
+            else
+            {
+                Results[i] = new()
+                {
+                    x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies),
+                    y = Mathf.Lerp(minPercentageY, maxPercentageY, WaveformToDisplay[j] / 10),
+                    z = 0
+                };
+                j++;
+            }
+        }
+    }
 
     private void GenerateGrid()
     {
-        Vector3 cameraPosition = SimulationCamera.ScreenToWorldPoint(new Vector2(0, SimulationCamera.pixelHeight)); // conservo l'angolo in alto a sinistra della telecamera
+        //Vector3 cameraPosition = SimulationCamera.ScreenToWorldPoint(new Vector2(0, SimulationCamera.pixelHeight)); // conservo l'angolo in alto a sinistra della telecamera
         _meshGrid = new();
         for (int x = 1; x <= MeshGridRows; x++)
         {
@@ -34,64 +97,401 @@ public class SimulationVisualizer : MonoBehaviour
             }
         }
     }
-    public void SetupVisualization(Camera simulationCamera, SimulationManager simulationManager, int meshGridRows, int meshGridCols)
+    public void SetupVisualization(int meshGridRows, int meshGridCols, List<GameObject> viruses)
     {
-        SimulationCamera = simulationCamera;
-        SimulationManager = simulationManager;
+        SimulationCamera = gameObject.GetComponent<Camera>();
         MeshGridRows = meshGridRows;
         MeshGridCols = meshGridCols;
+        _regions = new GameObject("Regions");
         GenerateGrid();
-        foreach (Region r in SimulationManager.RegionList)
+        foreach (Region r in SimulationManagerInstance.RegionList)
         {
             // pesco una ad una le regioni e le posiziono negli slot vuoti della meshgrid
             List<(Vector3 position, Region region)> slots = _meshGrid.FindAll(v => v.region == null);
             int index = UnityEngine.Random.Range(0, slots.Count);
-            GameObject regionStubObject = (GameObject)Instantiate(Resources.Load("Region Stub"));
-            regionStubObject.name = "Region " + r.RegionID + " stub";
-            regionStubObject.transform.position = new Vector3(slots[index].position.x, slots[index].position.y, -1);
-            regionStubObject.transform.parent = _stubs.transform;
+            GameObject regionObject = r.gameObject;
+            regionObject.name = "Region " + r.RegionID;
+            regionObject.transform.position = new Vector3(slots[index].position.x, slots[index].position.y, -1);
+            regionObject.transform.parent = _regions.transform;
             _meshGrid[_meshGrid.IndexOf(slots[index])] = new(slots[index].position, r);
-            //float gatewayDistanceFromCenter = 0;
-            //Node gatewayNode;
             foreach (Node n in r.NodeList)
             {
-                n.gameObject.transform.parent = regionStubObject.transform;
-                /*n.gameObject.transform.localPosition = new Vector3(UnityEngine.Random.Range(0, regionStubObject.transform.localScale.x / 2 - (n.gameObject.transform.localScale.x * regionStubObject.transform.localScale.x) / 2),
-                                                                   UnityEngine.Random.Range(0, regionStubObject.transform.localScale.y / 2 - (n.gameObject.transform.localScale.y * regionStubObject.transform.localScale.y) / 2),
-                                                                   0);*/
-                n.gameObject.transform.localPosition = Random.insideUnitCircle * .3f;
+                n.gameObject.transform.parent = regionObject.transform;
+                n.gameObject.transform.localPosition = UnityEngine.Random.insideUnitCircle * .3f;
                 n.gameObject.GetComponent<SpriteRenderer>().enabled = true;
-                //if (Vector3.Distance(n.gameObject.transform.position, gatewayNode.gameObject.transform.position)
             }
         }
+        Vector3 pivot = gameObject.transform.position;
+        foreach(GameObject v in viruses)
+        {
+            v.transform.localPosition = new Vector3(UnityEngine.Random.Range(-pivot.x / 2, pivot.x / 2),
+                                                    UnityEngine.Random.Range(-pivot.y / 2, pivot.y / 2));
+        }
+        
+        BottomLeftPoint = SimulationVisualizerInstance.SimulationCamera.ViewportToWorldPoint(Vector2.zero);
+        TopRightPoint = SimulationVisualizerInstance.SimulationCamera.ViewportToWorldPoint(Vector2.one);
+        Debug.Log("BottomLeftPoint: " + BottomLeftPoint + " TopRightPoint: " + TopRightPoint);
     }
     public void DrawEncounters()
     {
-        foreach(Region region in SimulationManager.RegionList)
+        foreach (Region r in SimulationManagerInstance.RegionList)
         {
-            foreach(Node n in region.NodeList)
+            foreach (Node n in r.NodeList)
             {
-                List<GameObject>  nodeEncounters = n.RefreshEncounters();
-                foreach (GameObject e in nodeEncounters)
+                foreach(GameObject e in n.CurrentEncounters)
                 {
+                    Debug.Log(e.name);
                     Encounter ec = e.GetComponent<Encounter>();
                     ec.Edge.SetPositions(new Vector3[2]
                     {
-                        ec.Source.transform.position,
-                        ec.Destination.transform.position
+                                    ec.Source.transform.position,
+                                    ec.Destination.transform.position
                     });
+                    if (ec.IsBusy)
+                    {
+                        if (ec is MaliciousEncounter)
+                        {
+                            ec.Edge.startColor = Color.red;
+                            ec.Edge.endColor = Color.red;
+                        }
+                        else
+                        {
+                            ec.Edge.startColor = Color.green;
+                            ec.Edge.endColor = Color.green;
+                        }
+
+                    }
+                    else
+                    {
+                        ec.Edge.startColor = Color.cyan;
+                        ec.Edge.endColor = Color.magenta;
+                    }
+                }
+            }
+        }
+        //foreach(GameObject e in SimulationManagerInstance.EncounterList)
+        //{
+        //    Encounter ec = e.GetComponent<Encounter>();
+        //    ec.Edge.SetPositions(new Vector3[2]
+        //    {
+        //                ec.Source.transform.position,
+        //                ec.Destination.transform.position
+        //    });
+        //    if (ec.IsBusy)
+        //    {
+        //        if (ec is MaliciousEncounter)
+        //        {
+        //            ec.Edge.startColor = Color.red;
+        //            ec.Edge.endColor = Color.red;
+        //        }
+        //        else
+        //        {
+        //            ec.Edge.startColor = Color.green;
+        //            ec.Edge.endColor = Color.green;
+        //        }
+
+        //    }
+        //    else
+        //    {
+        //        ec.Edge.startColor = Color.cyan;
+        //        ec.Edge.endColor = Color.magenta;
+        //    }
+
+        //}
+    }
+    public void ZoomInAction(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            OnZoomIn.Invoke();
+        }
+    }
+    public void ZoomOutAction(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            OnZoomOut.Invoke();
+        }
+    }
+    private RaycastHit2D CheckRaycastedTo() 
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+        RaycastHit2D hit;
+        ContactFilter2D contactFilter;
+        if (Camera.main.orthographicSize == RegionOrtographicSize)
+        {
+            contactFilter = new()
+            {
+                layerMask = SimulationManagerInstance.NodeLayer
+            };
+        }
+        else
+        {
+            contactFilter = new()
+            {
+                layerMask = SimulationManagerInstance.RegionLayer
+            };
+        }
+        Debug.Log(ray.origin + " " + ray.direction);
+        Debug.DrawLine(ray.origin, Vector3.one, Color.yellow);
+        Debug.DrawRay(ray.origin, ray.direction, Color.yellow);
+        hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, contactFilter.layerMask);
+        return hit;
+    }
+    private void ZoomIn()
+    {
+        Debug.Log("zooming in");
+        if (Camera.main.orthographicSize == NodeOrtographicSize) return;
+        RaycastHit2D hit = CheckRaycastedTo();
+        if (hit.collider is null)
+        {
+            Debug.Log("not clicked region");
+            return;
+        }
+        else Debug.Log(hit.collider.gameObject.name);
+        if (Camera.main.orthographicSize == NetworkOrtographicSize)
+        {
+            Debug.Log("LV0");
+            Camera.main.orthographicSize = RegionOrtographicSize;
+            Camera.main.transform.position = hit.transform.position;
+            _visualizingRegion = hit.collider.gameObject;
+            Region r = hit.collider.transform.GetChild(0).gameObject.GetComponent<Node>().RegionData;
+            Debug.Log(r);
+            OnShowRegionInfo.Invoke(r);
+        }
+        else if (Camera.main.orthographicSize == RegionOrtographicSize && hit.collider.gameObject.TryGetComponent(out Node n))
+        {
+            Debug.Log("LV1");
+            Camera.main.orthographicSize = NodeOrtographicSize;
+            Camera.main.transform.position = hit.transform.position;
+            _visualizingNode = hit.collider.gameObject;
+            OnShowNodeInfo.Invoke(n);
+        }
+        else return;
+    }
+
+    private void ZoomOut()
+    {
+        Debug.Log("zooming out");
+        if (Camera.main.orthographicSize == NodeOrtographicSize)
+        {
+            Camera.main.transform.position = _visualizingRegion.transform.position;
+            Camera.main.orthographicSize = RegionOrtographicSize;
+            NodePanel.SetActive(false);
+        }
+        else if (Camera.main.orthographicSize == RegionOrtographicSize)
+        {
+            Camera.main.transform.position = _originalPosition;
+            Camera.main.orthographicSize = NetworkOrtographicSize;
+            RegionPanel.SetActive(false);
+        }
+        else return;
+
+    }
+    private void OpenNodeInfoPanel(Node nodeData)
+    {
+        //CanvasRenderer[] fields = gameObject.GetComponentsInChildren<CanvasRenderer>(includeInactive: true);
+        GameObject[] nodeFields = new GameObject[NodePanel.transform.childCount];
+        for (int i = 0; i < NodePanel.transform.childCount; i++) nodeFields[i] = NodePanel.transform.GetChild(i).gameObject;
+        /* Name */
+        nodeFields[0].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = nodeData.Name;
+        /* Status */
+        nodeFields[1].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = nodeData.Status is Healthy ? "healthy" : "infected";
+        ///* Physical address */
+        nodeFields[2].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = "<no access to physical address>";
+
+        ///* Energy */
+        nodeFields[3].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.EnergyLevel;
+        ///* Region ID */
+        nodeFields[4].transform.GetChild(0).gameObject.GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = Convert.ToInt32(nodeData.RegionData.RegionID).ToString();
+        ///* Power */
+        nodeFields[5].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.Power;
+        ///* Speed */
+        nodeFields[6].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.Speed;
+        ///* Resistance */
+        nodeFields[7].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.ResistanceLimit;
+        ///* Package queue */
+        nodeFields[8].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = nodeData.NumberOfQueuedPackages().ToString();
+        ///* Energy drain rate */
+        nodeFields[9].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.EnergyDrainRatePerCycle;
+        ///* Charging speed */
+        nodeFields[10].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.ChargingRatePerSecond;
+        ///* Duty cycle */
+        nodeFields[11].GetComponentInChildren<Slider>(includeInactive: true).value = nodeData.DutyCycleDuration;
+        NodePanel.SetActive(true);
+
+        ///* Waveform */
+        _visualizingNode = nodeData.gameObject;
+        UpdateWaveformGraphicsAsync(true);
+    }
+    private void OpenRegionInfoPanel(Region regionData)
+    {
+        GameObject[] regionFields = new GameObject[RegionPanel.transform.childCount];
+        for (int i = 0; i < RegionPanel.transform.childCount; i++)
+        {
+            Debug.Log(RegionPanel.transform.GetChild(i));
+            regionFields[i] = RegionPanel.transform.GetChild(i).gameObject;
+        }
+        /* Name */
+        regionFields[0].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = "Region " + regionData.RegionID;
+        /* Region ID */
+        regionFields[1].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = Convert.ToInt32(regionData.RegionID).ToString();
+        /* Node list */
+        regionFields[2].GetComponentInChildren<TextMeshProUGUI>(includeInactive: true).text = "contains " + regionData.NodeList.Count + " nodes";
+
+        /* List */
+        Node[] nodes = regionData.NodeList.ToArray();
+        for (int i=0; i < regionFields[3].transform.childCount; i++)
+        {
+            Transform tableEntry = regionFields[3].transform.GetChild(i);
+            TextMeshProUGUI nodeStatusText;
+            if (i < nodes.Length)
+            {
+                nodeStatusText = tableEntry.gameObject.transform.GetChild(0).GetComponent<TextMeshProUGUI>();
+                tableEntry.gameObject.GetComponent<TextMeshProUGUI>().text = nodes[i].Name;
+                nodeStatusText.text = nodes[i].Status is Healthy ?
+                    "healthy (" + (100 - (int)(((Healthy)nodes[i].Status).InfectionSteps / (float)nodes[i].ResistanceLimit * 100)) + "%)"
+                    :
+                    "infected";
+                if (nodeStatusText.text == "infected")
+                {
+                    nodeStatusText.color = Color.red;
+                }
+                else nodeStatusText.color = Color.green;
+                tableEntry.gameObject.SetActive(true);
+            }
+            else tableEntry.gameObject.SetActive(false);
+        }
+        RegionPanel.SetActive(true);
+        /* Waveform */
+        _visualizingRegion = regionData.gameObject;
+        UpdateWaveformGraphicsAsync(false);
+    }
+    private Vector3[] CreateWaveformGraphics(float[] waveformToDisplay, float[] notMinValues)
+    {
+        // dividere l'array in 22 chunk da 1000 posizioni ciascuno e aggiornare 1 chunk alla volta in modo asincrono
+        float minHzX = -607f;
+        float maxHzX = 607f;
+        float minPercentageY = -97f;
+        float maxPercentageY = 97f;
+        int notMinValuesCount = notMinValues.Count();
+        Vector3[] spectrumPositions = new Vector3[notMinValuesCount + 4];
+        float min = waveformToDisplay.Min();
+        int firstValueIndex = -1, lastValueIndex;
+        for (int i = 0; i < waveformToDisplay.Length; i++)
+        {
+            if (waveformToDisplay[i] == min) continue;
+            else
+            {
+                firstValueIndex = i;
+                break;
+            }
+        }
+        lastValueIndex = firstValueIndex + notMinValuesCount;
+        Debug.Log(firstValueIndex + " " + lastValueIndex + " " + notMinValuesCount);
+        //NativeArray<Vector3> native_spectrumPositions = new(spectrumPositions, Allocator.TempJob);
+        //NativeArray<Vector3> native_results = new(spectrumPositions, Allocator.TempJob);
+        //NativeArray<float> native_waveformToDisplay = new(notMinValues.ToArray(), Allocator.TempJob);
+
+        spectrumPositions[0] = new Vector3(minHzX, Mathf.Lerp(minPercentageY, maxPercentageY, min/5), 0);
+        spectrumPositions[1] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)firstValueIndex / NumberOfFrequencies), spectrumPositions[0].y, 0);
+        spectrumPositions[notMinValuesCount + 4 - 1] = new Vector3(maxHzX, spectrumPositions[0].y, 0);
+        spectrumPositions[notMinValuesCount + 4 - 2] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)lastValueIndex / NumberOfFrequencies), spectrumPositions[0].y, 0);
+        //native_spectrumPositions[0] = new Vector3(minHzX, Mathf.Lerp(minPercentageY, maxPercentageY, min), 0);
+        //native_spectrumPositions[1] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)firstValueIndex / NumberOfFrequencies), native_spectrumPositions[0].y, 0);
+        //native_spectrumPositions[notMinValues.Count() + 4 - 1] = new Vector3(maxHzX, native_spectrumPositions[0].y, 0);
+        //native_spectrumPositions[notMinValues.Count() + 4 - 2] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)lastValueIndex / NumberOfFrequencies), native_spectrumPositions[0].y, 0);
+        int j = 0;
+        for (int i = 0; i < spectrumPositions.Length; i++)
+        {
+            if (i < 2 || i >= spectrumPositions.Length - 2) continue;
+            else
+            {
+                spectrumPositions[i].x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies);
+                spectrumPositions[i].y = Mathf.Lerp(minPercentageY, maxPercentageY, notMinValues[j] / 5);
+                spectrumPositions[i].z = 0;
+            };
+            j++;
+        }
+        //WaveformGraphicsJob generateGraphicsParallelJob = new()
+        //{
+        //    ControlPoints = native_spectrumPositions,
+        //    Results = native_results,
+        //    WaveformToDisplay = native_waveformToDisplay,
+        //    minHzX = -607f,
+        //    maxHzX = 607f,
+        //    minPercentageY = -97f,
+        //    maxPercentageY = 97f,
+        //    firstValueIndex = firstValueIndex
+        //};
+        //JobHandle handle = generateGraphicsParallelJob.Schedule(native_spectrumPositions.Length, native_results.Length);
+        //handle.Complete();
+        //native_spectrumPositions.Dispose();
+        //native_waveformToDisplay.Dispose();
+        //native_results.CopyTo(spectrumPositions);
+        //native_results.Dispose();
+        return spectrumPositions;
+    }
+    public async void UpdateWaveformGraphicsAsync(bool isNode)
+    {
+        LineRenderer spectrumLine;
+        float[] waveformToDisplay;
+        if (isNode) {
+            spectrumLine = NodePanel.GetComponentInChildren<LineRenderer>();
+            waveformToDisplay = _visualizingNode.GetComponent<Node>().Tone.GetSpectrum(gameObject);
+        }
+        else {
+            spectrumLine = RegionPanel.GetComponentInChildren<LineRenderer>();
+            waveformToDisplay = _visualizingRegion.GetComponent<Region>().RegionWaveform.GetSpectrum(gameObject);
+        }
+        float min = waveformToDisplay.Min();
+        float[] notMinValues = waveformToDisplay.Where(s => s != min).ToArray();
+        foreach (float s in notMinValues) Debug.Log(s);
+        spectrumLine.positionCount = notMinValues.Count() + 4;
+        Vector3[] spectrumPositions = await Task.Run(() => { return CreateWaveformGraphics(waveformToDisplay, notMinValues); });
+        spectrumLine.SetPositions(spectrumPositions);
+        //Task update = new(() => { CreateWaveformGraphics(spectrumLine, waveformToDisplay); });
+    }
+    public void UpdateNodeGraphics() 
+    {
+        foreach (Region r in SimulationManagerInstance.RegionList)
+        {
+            foreach (Node n in r.NodeList)
+            {
+                if (n.Status is Healthy)
+                {
+                    Healthy status = n.Status as Healthy;
+                    status.gameObject.GetComponent<SpriteRenderer>().color = Color.Lerp(Color.white, Color.red, (float)status.InfectionSteps / n.ResistanceLimit);
                 }
             }
         }
     }
+
+
     private void Awake()
     {
         if (SimulationVisualizerInstance == null)
         {
             SimulationVisualizerInstance = this;
+            _originalPosition = gameObject.transform.position;
             DontDestroyOnLoad(gameObject);
-            _stubs = new GameObject("Visualized regions");
-            _stubs.transform.position = transform.position;
+            _regions = new GameObject("Visualized regions");
+            _regions.transform.position = transform.position;
+            controls = new Controls();
+            OnZoomIn = new();
+            OnZoomOut = new();
+            OnShowNodeInfo = new();
+            OnShowRegionInfo = new();
+            GameObject panels = transform.GetChild(0).gameObject;
+            NodePanel = panels.transform.GetChild(0).gameObject;
+            RegionPanel = panels.transform.GetChild(1).gameObject;
+            OnZoomIn.AddListener(ZoomIn);
+            OnZoomOut.AddListener(ZoomOut);
+            OnShowNodeInfo.AddListener(OpenNodeInfoPanel);
+            OnShowRegionInfo.AddListener(OpenRegionInfoPanel);
+            controls.SimulationInteraction.Enable();
+            controls.SimulationInteraction.ZoomIn.performed += ZoomInAction;
+            controls.SimulationInteraction.ZoomOut.performed += ZoomOutAction;
         }
         else Destroy(gameObject);
     }
@@ -105,7 +505,12 @@ public class SimulationVisualizer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        UpdateNodeGraphics();
+        DrawEncounters();
+        if (Camera.main.orthographicSize == NodeOrtographicSize)
+        {
+            Camera.main.transform.position = _visualizingNode.transform.position;
+        }
     }
 
     private void OnDrawGizmos()

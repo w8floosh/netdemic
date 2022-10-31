@@ -6,6 +6,8 @@ TagManager:
   tags:
   - Simulation Manager
   - Simulation Visualizer
+  - Menu
+  - Information Panel
   layers:
   - Default
   - TransparentFX

@@ -2,8 +2,13 @@ using System;
 using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Events;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using static SimulationManager;
+using static SimulationVisualizer;
 
 [Serializable]
 public class Region : MonoBehaviour
@@ -22,13 +27,17 @@ public class Region : MonoBehaviour
         private set {   _nodeList = value;   }
     }
     [SerializeField] public Waveform RegionWaveform;
-
+    //public Controls controls;
+    //public UnityEvent OnZoomIn;
+    //public UnityEvent OnZoomOut;
     public void AddNode(Node node)
     {
         NodeList.Add(node);
     }
+    public void SwitchInfoPanel()
+    {
 
-
+    }
     private void Awake()
     {
         NodeList = new List<Node>();
@@ -54,4 +63,7 @@ public class Region : MonoBehaviour
     {
         
     }
+
+
+
 }
