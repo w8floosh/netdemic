@@ -22,6 +22,7 @@ public class SecureEncounter : Encounter
         Source = src;
         Destination = dst;
         Edge = gameObject.AddComponent<LineRenderer>();
+        Edge.enabled = false;
         Edge.material = new Material(Shader.Find("Legacy Shaders/Particles/Alpha Blended Premultiply"));
         Edge.SetPosition(0, Source.transform.position);
         Edge.SetPosition(1, Destination.transform.position);
