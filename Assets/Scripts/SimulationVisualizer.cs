@@ -18,7 +18,7 @@ using System.Drawing.Drawing2D;
 using Unity.Jobs;
 using Unity.Collections;
 using System.Threading.Tasks;
-
+using NugetForUnity;
 public class SimulationVisualizer : MonoBehaviour
 {
     public static SimulationVisualizer SimulationVisualizerInstance;
@@ -467,75 +467,143 @@ public class SimulationVisualizer : MonoBehaviour
         if (!RegionPanel.activeInHierarchy) UpdateWaveformGraphicsAsync(false);
         RegionPanel.SetActive(true);
     }
-    private Vector3[] CreateWaveformGraphics(float[] waveformToDisplay, float[] notMinValues)
+    private List<Vector3> CreateWaveformGraphicsSegment(ArraySegment<double> values, double min)
     {
-        // dividere l'array in 22 chunk da 1000 posizioni ciascuno e aggiornare 1 chunk alla volta in modo asincrono
         float minHzX = -607f;
         float maxHzX = 607f;
         float minPercentageY = -97f;
         float maxPercentageY = 97f;
-        int notMinValuesCount = notMinValues.Count();
-        Vector3[] spectrumPositions = new Vector3[notMinValuesCount + 4];
-        float min = waveformToDisplay.Min();
-        int firstValueIndex = -1, lastValueIndex;
-        for (int i = 0; i < waveformToDisplay.Length; i++)
+        List<Vector3> positions = new()
         {
-            if (waveformToDisplay[i] == min) continue;
+            new Vector3(
+            x: Mathf.Lerp(minHzX, maxHzX, (float)(values.Offset - 1) / NumberOfFrequencies),
+            y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
+            z: 0)
+        };
+
+        for (int i = values.Offset; i < values.Offset + values.Count; i++)
+        {
+            //Debug.Log(values.Array.ElementAt(i) == values.ElementAt(i - values.Offset));
+
+            positions.Add(new Vector3(
+                            x: Mathf.Lerp(minHzX, maxHzX, (float)i / NumberOfFrequencies),
+                            y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(values.ElementAt(i - values.Offset) / 5)), // ANALIZZARE
+                            z: 0));
+            //spectrumPositions[i].x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies);
+            //spectrumPositions[i].y = Mathf.Lerp(minPercentageY, maxPercentageY, notMinValues[j] / 5);
+            //spectrumPositions[i].z = 0;
+        }
+        positions.Add(new Vector3(
+            x: Mathf.Lerp(minHzX, maxHzX, (float)(values.Offset + values.Count) / NumberOfFrequencies),
+            y: positions.ElementAt(0).y,
+            z: 0));
+        return positions;
+    }
+
+        //private Vector3[] CreateWaveformGraphics(float[] waveformToDisplay, float[] notMinValues) //funzionante
+        //{
+        //  
+        //    float minHzX = -607f;
+        //    float maxHzX = 607f;
+        //    float minPercentageY = -97f;
+        //    float maxPercentageY = 97f;
+        //    int notMinValuesCount = notMinValues.Count();
+        //    Vector3[] spectrumPositions = new Vector3[notMinValuesCount + 4];
+        //    float min = waveformToDisplay.Min();
+        //    int firstValueIndex = -1, lastValueIndex;
+        //    for (int i = 0; i < waveformToDisplay.Length; i++)
+        //    {
+        //        if (waveformToDisplay[i] == min) continue;
+        //        else
+        //        {
+        //            firstValueIndex = i;
+        //            break;
+        //        }
+        //    }
+        //    lastValueIndex = firstValueIndex + notMinValuesCount;
+        //    Debug.Log(firstValueIndex + " " + lastValueIndex + " " + notMinValuesCount);
+        //    //NativeArray<Vector3> native_spectrumPositions = new(spectrumPositions, Allocator.TempJob);
+        //    //NativeArray<Vector3> native_results = new(spectrumPositions, Allocator.TempJob);
+        //    //NativeArray<float> native_waveformToDisplay = new(notMinValues.ToArray(), Allocator.TempJob);
+
+        //    spectrumPositions[0] = new Vector3(minHzX, Mathf.Lerp(minPercentageY, maxPercentageY, min/5), 0);
+        //    spectrumPositions[1] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)firstValueIndex / NumberOfFrequencies), spectrumPositions[0].y, 0);
+        //    spectrumPositions[notMinValuesCount + 4 - 1] = new Vector3(maxHzX, spectrumPositions[0].y, 0);
+        //    spectrumPositions[notMinValuesCount + 4 - 2] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)lastValueIndex / NumberOfFrequencies), spectrumPositions[0].y, 0);
+        //    //native_spectrumPositions[0] = new Vector3(minHzX, Mathf.Lerp(minPercentageY, maxPercentageY, min), 0);
+        //    //native_spectrumPositions[1] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)firstValueIndex / NumberOfFrequencies), native_spectrumPositions[0].y, 0);
+        //    //native_spectrumPositions[notMinValues.Count() + 4 - 1] = new Vector3(maxHzX, native_spectrumPositions[0].y, 0);
+        //    //native_spectrumPositions[notMinValues.Count() + 4 - 2] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)lastValueIndex / NumberOfFrequencies), native_spectrumPositions[0].y, 0);
+        //    int j = 0;
+        //    for (int i = 0; i < spectrumPositions.Length; i++)
+        //    {
+        //        if (i < 2 || i >= spectrumPositions.Length - 2) continue;
+        //        else
+        //        {
+        //            spectrumPositions[i].x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies);
+        //            spectrumPositions[i].y = Mathf.Lerp(minPercentageY, maxPercentageY, notMinValues[j] / 5);
+        //            spectrumPositions[i].z = 0;
+        //        };
+        //        j++;
+        //    }
+        //    //WaveformGraphicsJob generateGraphicsParallelJob = new()
+        //    //{
+        //    //    ControlPoints = native_spectrumPositions,
+        //    //    Results = native_results,
+        //    //    WaveformToDisplay = native_waveformToDisplay,
+        //    //    minHzX = -607f,
+        //    //    maxHzX = 607f,
+        //    //    minPercentageY = -97f,
+        //    //    maxPercentageY = 97f,
+        //    //    firstValueIndex = firstValueIndex
+        //    //};
+        //    //JobHandle handle = generateGraphicsParallelJob.Schedule(native_spectrumPositions.Length, native_results.Length);
+        //    //handle.Complete();
+        //    //native_spectrumPositions.Dispose();
+        //    //native_waveformToDisplay.Dispose();
+        //    //native_results.CopyTo(spectrumPositions);
+        //    //native_results.Dispose();
+        //    return spectrumPositions;
+        //}
+    public List<ArraySegment<double>> GetChunks(double[] waveform, double min)
+    {
+        int chunkStartIndex = -1, chunkEndIndex;
+        bool inChunk = false;
+        List<ArraySegment<double>> notMinValuesChunks = new();
+        for (int i = 0; i < waveform.Length; i++)
+        {
+            if (waveform[i] == min) {
+                if (inChunk)
+                {
+                    chunkEndIndex = i-1;
+                    Debug.Log("(" + i + ", " + waveform[i] + ")");
+                    ArraySegment<double> chunk = new(waveform, chunkStartIndex, chunkEndIndex - chunkStartIndex + 1);
+                    UnityEngine.Debug.Log("found chunk from index " + chunkStartIndex + " to " + chunkEndIndex);
+                    notMinValuesChunks.Add(chunk);
+                    inChunk = false;
+                }
+            }
             else
             {
-                firstValueIndex = i;
-                break;
+                Debug.Log("(" + i + ", " + waveform[i] + ")");
+                if (!inChunk)
+                {
+                    chunkStartIndex = i;
+                    inChunk = true;
+                }
             }
         }
-        lastValueIndex = firstValueIndex + notMinValuesCount;
-        Debug.Log(firstValueIndex + " " + lastValueIndex + " " + notMinValuesCount);
-        //NativeArray<Vector3> native_spectrumPositions = new(spectrumPositions, Allocator.TempJob);
-        //NativeArray<Vector3> native_results = new(spectrumPositions, Allocator.TempJob);
-        //NativeArray<float> native_waveformToDisplay = new(notMinValues.ToArray(), Allocator.TempJob);
-
-        spectrumPositions[0] = new Vector3(minHzX, Mathf.Lerp(minPercentageY, maxPercentageY, min/5), 0);
-        spectrumPositions[1] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)firstValueIndex / NumberOfFrequencies), spectrumPositions[0].y, 0);
-        spectrumPositions[notMinValuesCount + 4 - 1] = new Vector3(maxHzX, spectrumPositions[0].y, 0);
-        spectrumPositions[notMinValuesCount + 4 - 2] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)lastValueIndex / NumberOfFrequencies), spectrumPositions[0].y, 0);
-        //native_spectrumPositions[0] = new Vector3(minHzX, Mathf.Lerp(minPercentageY, maxPercentageY, min), 0);
-        //native_spectrumPositions[1] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)firstValueIndex / NumberOfFrequencies), native_spectrumPositions[0].y, 0);
-        //native_spectrumPositions[notMinValues.Count() + 4 - 1] = new Vector3(maxHzX, native_spectrumPositions[0].y, 0);
-        //native_spectrumPositions[notMinValues.Count() + 4 - 2] = new Vector3(Mathf.Lerp(minHzX, maxHzX, (float)lastValueIndex / NumberOfFrequencies), native_spectrumPositions[0].y, 0);
-        int j = 0;
-        for (int i = 0; i < spectrumPositions.Length; i++)
-        {
-            if (i < 2 || i >= spectrumPositions.Length - 2) continue;
-            else
-            {
-                spectrumPositions[i].x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies);
-                spectrumPositions[i].y = Mathf.Lerp(minPercentageY, maxPercentageY, notMinValues[j] / 5);
-                spectrumPositions[i].z = 0;
-            };
-            j++;
-        }
-        //WaveformGraphicsJob generateGraphicsParallelJob = new()
-        //{
-        //    ControlPoints = native_spectrumPositions,
-        //    Results = native_results,
-        //    WaveformToDisplay = native_waveformToDisplay,
-        //    minHzX = -607f,
-        //    maxHzX = 607f,
-        //    minPercentageY = -97f,
-        //    maxPercentageY = 97f,
-        //    firstValueIndex = firstValueIndex
-        //};
-        //JobHandle handle = generateGraphicsParallelJob.Schedule(native_spectrumPositions.Length, native_results.Length);
-        //handle.Complete();
-        //native_spectrumPositions.Dispose();
-        //native_waveformToDisplay.Dispose();
-        //native_results.CopyTo(spectrumPositions);
-        //native_results.Dispose();
-        return spectrumPositions;
+        Debug.Log("found " + notMinValuesChunks.Count + " chunks");
+        return notMinValuesChunks;
     }
     public async void UpdateWaveformGraphicsAsync(bool isNode)
     {
         LineRenderer spectrumLine;
-        float[] waveformToDisplay;
+        double[] waveformToDisplay;
+        float minHzX = -607f;
+        float maxHzX = 607f;
+        float minPercentageY = -97f;
+        float maxPercentageY = 97f;
         if (isNode) {
             spectrumLine = NodePanel.GetComponentInChildren<LineRenderer>();
             waveformToDisplay = VisualizingNode.GetComponent<Node>().Tone.GetSpectrum(gameObject);
@@ -544,14 +612,60 @@ public class SimulationVisualizer : MonoBehaviour
             spectrumLine = RegionPanel.GetComponentInChildren<LineRenderer>();
             waveformToDisplay = VisualizingRegion.GetComponent<Region>().RegionWaveform.GetSpectrum(gameObject);
         }
-        float min = waveformToDisplay.Min();
-        float[] notMinValues = waveformToDisplay.Where(s => s != min).ToArray();
-        foreach (float s in notMinValues) Debug.Log(s);
-        spectrumLine.positionCount = notMinValues.Count() + 4;
-        Vector3[] spectrumPositions = await Task.Run(() => { return CreateWaveformGraphics(waveformToDisplay, notMinValues); });
+        double min = waveformToDisplay.Min();
+        Debug.Log(min);
+
+        List<ArraySegment<double>> notMinValuesChunks = GetChunks(waveformToDisplay, min);
+        spectrumLine.positionCount = 2;
+        foreach (ArraySegment<double> chunk in notMinValuesChunks)
+        {
+            spectrumLine.positionCount += chunk.Count + 2;
+        }
+        Vector3[] spectrumPositions = await Task.Run(() =>
+        {
+            List<Vector3> spectrumPositions = new()
+            {
+                new Vector3(
+                x: minHzX,
+                y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
+                z: 0)
+            };
+
+            foreach (ArraySegment<double> chunk in notMinValuesChunks)
+            {
+                // ogni chiamata a questa funzione genera i due punti minimi di delimitazione di ogni picco
+                spectrumPositions.AddRange(CreateWaveformGraphicsSegment(chunk, min));
+            }
+            spectrumPositions.Add(new Vector3(
+                x: maxHzX,
+                y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
+                z: 0)
+            );
+
+            return spectrumPositions.ToArray(); 
+        });
         spectrumLine.SetPositions(spectrumPositions);
-        //Task update = new(() => { CreateWaveformGraphics(spectrumLine, waveformToDisplay); });
     }
+    //public async void UpdateWaveformGraphicsAsync(bool isNode) //funzionante
+    //{
+    //    LineRenderer spectrumLine;
+    //    float[] waveformToDisplay;
+    //    if (isNode) {
+    //        spectrumLine = NodePanel.GetComponentInChildren<LineRenderer>();
+    //        waveformToDisplay = VisualizingNode.GetComponent<Node>().Tone.GetSpectrum(gameObject);
+    //    }
+    //    else {
+    //        spectrumLine = RegionPanel.GetComponentInChildren<LineRenderer>();
+    //        waveformToDisplay = VisualizingRegion.GetComponent<Region>().RegionWaveform.GetSpectrum(gameObject);
+    //    }
+    //    float min = waveformToDisplay.Min();
+    //    float[] notMinValues = waveformToDisplay.Where(s => s != min).ToArray();
+    //    foreach (float s in notMinValues) Debug.Log(s);
+    //    spectrumLine.positionCount = notMinValues.Count() + 4;
+    //    Vector3[] spectrumPositions = await Task.Run(() => { return CreateWaveformGraphics(waveformToDisplay, notMinValues); });
+    //    spectrumLine.SetPositions(spectrumPositions);
+    //    //Task update = new(() => { CreateWaveformGraphics(spectrumLine, waveformToDisplay); });
+    //}
     public void UpdateNodeGraphics() 
     {
         foreach (Region r in SimulationManagerInstance.RegionList)

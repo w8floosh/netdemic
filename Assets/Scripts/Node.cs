@@ -61,8 +61,8 @@ public class Node : MonoBehaviour, INode
     private string GeneratePhysicalAddress()                                                                                // questa funzione cripta in SHA256 una stringa di byte per generare un indirizzo fisico univoco
     {
         SHA256 encryptor = SHA256.Create();                                                                         // creo un'istanza dell'algoritmo SHA256
-        float[] spectrum = Tone.GetSpectrum(gameObject);
-        byte[] waveformBytes = new byte[spectrum.Length * sizeof(float)];
+        double[] spectrum = Tone.GetSpectrum(gameObject);
+        byte[] waveformBytes = new byte[spectrum.Length * sizeof(double)];
         // copio i singoli byte dall'array dei campioni della waveform ORIGINALE
         Buffer.BlockCopy(spectrum, 0, waveformBytes, 0, waveformBytes.Length);
         // computo l'hash e lo salvo in una variabile PhysicalAddress
@@ -317,6 +317,7 @@ public class Node : MonoBehaviour, INode
         {
             _tone = gameObject.AddComponent<Waveform>();
             _tone.SetupWaveform(RegionData);
+            SimulationManagerInstance.VirusWaveform = _tone;
         }
         else
             _tone = SimulationManagerInstance.VirusWaveform;

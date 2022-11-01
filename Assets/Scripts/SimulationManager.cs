@@ -84,6 +84,11 @@ public class SimulationManager : MonoBehaviour
         return _regionList.Find(r => r.RegionID == id);
     }
 
+    public static double Lerp(double a, double b, float t)
+    {
+        return a + (b - a) * Mathf.Clamp01(t);
+    }
+
     private Region CreateRegion() // disegna uno sprite prefab Region nelle coordinate (frequenza, probabilità 0-100) e lo renderizza
     {
         GameObject regionObject = (GameObject)Instantiate(Resources.Load("Region"));
