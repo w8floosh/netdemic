@@ -13,7 +13,6 @@ public class MainMenu : MonoBehaviour
         MenuPanel.SetActive(false);
         LoadingPanel.SetActive(true);
         SceneManager.LoadScene("Game", LoadSceneMode.Single);
-
     }
     public void SwitchPanel() 
     {

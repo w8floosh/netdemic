@@ -186,7 +186,7 @@ public class Waveform : MonoBehaviour
         {
             SimulationVisualizerInstance.OnShowRegionInfo.Invoke(victim.RegionData);
         }
-        if (changed && SimulationVisualizerInstance.NodePanel.activeInHierarchy)
+        if (changed && SimulationVisualizerInstance.NodePanel.activeInHierarchy && victim == SimulationVisualizerInstance.VisualizingNode.GetComponent<Node>())
         {
             SimulationVisualizerInstance.UpdateWaveformGraphicsAsync(true);
         }

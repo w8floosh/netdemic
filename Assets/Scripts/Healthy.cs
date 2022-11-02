@@ -38,7 +38,7 @@ public class Healthy : NodeState
         encounter.IsBusy = true;
         if (delay == 0) yield return null;
         else yield return new WaitForSeconds(delay);
-        Debug.Log(encounter.Destination.Name + " received package " + toSend.ID + " after " + (delay * 100) + "ms");
+        //Debug.Log(encounter.Destination.Name + " received package " + toSend.ID + " after " + (delay * 100) + "ms");
         encounter.Destination.Status.RcvPackage(toSend);
         encounter.IsBusy = false;
     }

@@ -29,14 +29,14 @@ public class Infected : NodeState
     {
         _infectionSpeed = infectionSpeed;
     }
-
+    // metterlo in una coroutine è sbagliato?
     public IEnumerator InfectionCoroutine(Encounter encounter, Package toSend, float delay = 0)
     {
         if (encounter.Destination.Status is Infected) encounter.CloseEncounter();
         encounter.IsBusy = true;
         if (delay == 0) yield return null;
         else yield return new WaitForSeconds(delay);
-        Debug.Log(encounter.Destination.Name + " received package " + toSend.ID + " after " + (delay * 100) + "ms");
+        //Debug.Log(encounter.Destination.Name + " received package " + toSend.ID + " after " + (delay * 100) + "ms");
         encounter.Destination.Status.RcvPackage(toSend);
         if (encounter.Destination.Status is Healthy victim)
         {

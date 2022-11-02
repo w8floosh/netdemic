@@ -19,6 +19,8 @@ using Unity.Jobs;
 using Unity.Collections;
 using System.Threading.Tasks;
 using NugetForUnity;
+using GluonGui.Dialog;
+
 public class SimulationVisualizer : MonoBehaviour
 {
     public static SimulationVisualizer SimulationVisualizerInstance;
@@ -45,43 +47,47 @@ public class SimulationVisualizer : MonoBehaviour
     private List<(Vector3 position, Region region)> _meshGrid;
     private GameObject _regions;
     private Vector3 _originalPosition;
-    
+    private readonly float minHzX = -607f;
+    private readonly float maxHzX = 607f;
+    private readonly float minPercentageY = -97f;
+    private readonly float maxPercentageY = 97f;
+
     public class NodeUIEvent : UnityEvent<Node> { }
     public class RegionUIEvent : UnityEvent<Region> { }
 
-    public struct WaveformGraphicsJob : IJobParallelFor
-    {
-        public NativeArray<Vector3> ControlPoints;
-        public NativeArray<Vector3> Results;
-        public NativeArray<float> WaveformToDisplay;
-        public float minHzX;
-        public float maxHzX;
-        public float minPercentageY;
-        public float maxPercentageY;
-        public int j;
-        public int firstValueIndex;
-        public void Execute(int i)
-        {
-            if (i < 2 || i >= ControlPoints.Length - 2)
-            {
-                Debug.Log(Results.Length);
-                if (i < 2) j = 0;
-                Results[i] = ControlPoints[i];
-            }
+    //public struct WaveformGraphicsJob : IJobParallelFor
+    //{
+    //    public NativeArray<Vector3> ControlPoints;
+    //    public NativeArray<Vector3> Results;
+    //    public NativeArray<float> WaveformToDisplay;
+    //    public float minHzX;
+    //    public float maxHzX;
+    //    public float minPercentageY;
+    //    public float maxPercentageY;
+    //    public int j;
+    //    public int firstValueIndex;
+    //    public void Execute(int i)
+    //    {
+    //        if (i < 2 || i >= ControlPoints.Length - 2)
+    //        {
+    //            Debug.Log(Results.Length);
+    //            if (i < 2) j = 0;
+    //            Results[i] = ControlPoints[i];
+    //        }
 
 
-            else
-            {
-                Results[i] = new()
-                {
-                    x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies),
-                    y = Mathf.Lerp(minPercentageY, maxPercentageY, WaveformToDisplay[j] / 10),
-                    z = 0
-                };
-                j++;
-            }
-        }
-    }
+    //        else
+    //        {
+    //            Results[i] = new()
+    //            {
+    //                x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies),
+    //                y = Mathf.Lerp(minPercentageY, maxPercentageY, WaveformToDisplay[j] / 10),
+    //                z = 0
+    //            };
+    //            j++;
+    //        }
+    //    }
+    //}
 
     private void GenerateGrid()
     {
@@ -135,14 +141,13 @@ public class SimulationVisualizer : MonoBehaviour
         TopRightPoint = SimulationVisualizerInstance.SimulationCamera.ViewportToWorldPoint(Vector2.one);
         Debug.Log("BottomLeftPoint: " + BottomLeftPoint + " TopRightPoint: " + TopRightPoint);
     }
-    private void DisableEncounterRendering(GameObject e)
+    private void DisableEncounterRendering(Encounter e)
     {
-        e.GetComponent<Encounter>().Edge.enabled = false;
+        e.Edge.enabled = false;
     }
-    private void UpdateEncounterGraphics(GameObject e)
+    private void UpdateEncounterGraphics(Encounter ec)
     {
-        if (e == null) return;
-        Encounter ec = e.GetComponent<Encounter>();
+        if (ec == null) return;
         ec.Edge.SetPositions(new Vector3[2]
         {
             ec.Source.transform.position,
@@ -172,31 +177,31 @@ public class SimulationVisualizer : MonoBehaviour
     }
     private void DrawIncomingAndOutgoingEncounters(Node n, bool show)
     {
-        foreach (GameObject e in n.CurrentEncounters) // outgoing encounters
+        Encounter[] outgoingEncounters = n.gameObject.GetComponentsInChildren<Encounter>(includeInactive: true);
+        foreach (Encounter enc in outgoingEncounters) // outgoing encounters
         {
-            Encounter enc = e.GetComponent<Encounter>();
             if (show)
             {
                 if (enc.Edge.enabled == false) enc.Edge.enabled = true;
-                UpdateEncounterGraphics(e);
+                UpdateEncounterGraphics(enc);
             }
-            else DisableEncounterRendering(e);
+            else DisableEncounterRendering(enc);
         }
+
         foreach (GameObject v in SimulationManagerInstance.VirusSources) // incoming malicious encounters
         {
             Node vn = v.GetComponent<Node>();
+            List<Encounter> incomingEncounters = v.GetComponentsInChildren<Encounter>(includeInactive: true).ToList().FindAll(e => e.Destination == n);
             // prendi gli encounters del virus che hanno n come nodo destinazione
-            List<GameObject> encounters = vn.CurrentEncounters.FindAll(e => e.GetComponent<Encounter>().Destination == n);
-            foreach (GameObject e in encounters)
+            //List<GameObject> incomingEncounters = vn.CurrentEncounters.FindAll(e => e.GetComponent<Encounter>().Destination == n);
+            foreach (Encounter enc in incomingEncounters)
             {
-                Encounter enc = e.GetComponent<Encounter>();
-
                 if (show)
                 {
                     if (enc.Edge.enabled == false) enc.Edge.enabled = true;
-                    UpdateEncounterGraphics(e);
+                    UpdateEncounterGraphics(enc);
                 }
-                else DisableEncounterRendering(e);
+                else DisableEncounterRendering(enc);
             }
         }
     }
@@ -300,6 +305,7 @@ public class SimulationVisualizer : MonoBehaviour
                 }
             }
             VisualizingRegion = hit.collider.gameObject;
+            VisualizingNode = null;
             OnShowRegionInfo.Invoke(r);
         }
         else if (1 << hit.collider.gameObject.layer == SimulationManagerInstance.NodeLayer.value)
@@ -308,10 +314,30 @@ public class SimulationVisualizer : MonoBehaviour
             n = hit.collider.transform.GetComponent<Node>();
             Camera.main.orthographicSize = NodeOrtographicSize;
             Camera.main.transform.position = hit.transform.position;
-            if (VisualizingNode != null)
+            if (VisualizingRegion != null) 
+             // stavo visualizzando una regione o un nodo sano di quella regione
+             // 4 casi:
+             // 1) ho cliccato su un virus
+             // 2) ho cliccato su un nodo della stessa regione
+             // 3) ho cliccato su un nodo sano di un'altra regione
+             // 4) ho cliccato su un nodo infetto di un'altra regione
             {
-               DrawIncomingAndOutgoingEncounters(VisualizingNode.GetComponent<Node>(), show: false);
+                Region vr = VisualizingRegion.GetComponent<Region>();
+                foreach (Node node in vr.NodeList)
+                {
+                    DrawIncomingAndOutgoingEncounters(node, show: false);
+                }
             }
+            else
+            // stavo visualizzando un virus oppure tutta la rete
+            // 2 casi:
+            // 1) ho cliccato su un virus
+            // 2) ho cliccato su un qualsiasi nodo di una regione
+            {
+                if (VisualizingNode != null)
+                    DrawIncomingAndOutgoingEncounters(VisualizingNode.GetComponent<Node>(), show: false);
+            }
+            VisualizingRegion = hit.collider.transform.parent.gameObject;
             VisualizingNode = hit.collider.gameObject;
             OnShowRegionInfo.Invoke(r);
             OnShowNodeInfo.Invoke(n);
@@ -321,10 +347,30 @@ public class SimulationVisualizer : MonoBehaviour
             n = hit.collider.transform.GetComponent<Node>();
             Camera.main.orthographicSize = NodeOrtographicSize;
             Camera.main.transform.position = hit.transform.position;
-            if (VisualizingNode != null)
+            if (VisualizingRegion != null)
+            // stavo visualizzando una regione o un nodo sano di quella regione
+            // 4 casi:
+            // 1) ho cliccato su un virus
+            // 2) ho cliccato su un nodo della stessa regione
+            // 3) ho cliccato su un nodo sano di un'altra regione
+            // 4) ho cliccato su un nodo infetto di un'altra regione
             {
-                DrawIncomingAndOutgoingEncounters(VisualizingNode.GetComponent<Node>(), show: false);
+                Region vr = VisualizingRegion.GetComponent<Region>();
+                foreach (Node node in vr.NodeList)
+                {
+                    DrawIncomingAndOutgoingEncounters(node, show: false);
+                }
             }
+            else
+            // stavo visualizzando un virus oppure tutta la rete
+            // 2 casi:
+            // 1) ho cliccato su un virus
+            // 2) ho cliccato su un qualsiasi nodo di una regione
+            {
+                if (VisualizingNode != null)
+                    DrawIncomingAndOutgoingEncounters(VisualizingNode.GetComponent<Node>(), show: false);
+            }
+            VisualizingRegion = null;
             VisualizingNode = hit.collider.gameObject;
             OnShowNodeInfo.Invoke(n);
         }
@@ -335,10 +381,7 @@ public class SimulationVisualizer : MonoBehaviour
         Debug.Log("zooming out");
         Camera.main.orthographicSize = NetworkOrtographicSize;
         Camera.main.transform.position = _originalPosition;
-        NodePanel.SetActive(false);
         if (VisualizingNode != null) DrawIncomingAndOutgoingEncounters(VisualizingNode.GetComponent<Node>(), show: false);
-        VisualizingNode = null;
-        RegionPanel.SetActive(false);
         if (VisualizingRegion != null)
         {
             foreach (Node node in VisualizingRegion.GetComponent<Region>().NodeList)
@@ -346,90 +389,12 @@ public class SimulationVisualizer : MonoBehaviour
                 DrawIncomingAndOutgoingEncounters(node, show: false);
             }
         }
+        NodePanel.SetActive(false);
+        VisualizingNode = null;
+        RegionPanel.SetActive(false);
         VisualizingRegion = null;
     }
-    //private RaycastHit2D CheckRaycastedTo() //funzionante 
-    //{
-    //    Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
-    //    RaycastHit2D hit;
-    //    ContactFilter2D contactFilter;
-    //    if (Camera.main.orthographicSize == RegionOrtographicSize)
-    //    {
-    //        contactFilter = new()
-    //        {
-    //            layerMask = SimulationManagerInstance.NodeLayer
-    //        };
-    //    }
-    //    else
-    //    {
-    //        contactFilter = new()
-    //        {
-    //            layerMask = SimulationManagerInstance.RegionLayer | SimulationManagerInstance.VirusLayer
-    //        };
-    //    }
-    //    Debug.Log(ray.origin + " " + ray.direction);
-    //    Debug.DrawLine(ray.origin, Vector3.one, Color.yellow);
-    //    Debug.DrawRay(ray.origin, ray.direction, Color.yellow);
-    //    hit = Physics2D.Raycast(ray.origin, ray.direction, Mathf.Infinity, contactFilter.layerMask);
-    //    return hit;
-    //}
-    //private void ZoomIn() //funzionante
-    //{
-    //    Debug.Log("zooming in");
-    //    if (Camera.main.orthographicSize == NodeOrtographicSize) return;
-    //    RaycastHit2D hit = CheckRaycastedTo();
-    //    if (hit.collider is null)
-    //    {
-    //        Debug.Log("not clicked region");
-    //        return;
-    //    }
-    //    else Debug.Log(hit.collider.gameObject.name);
-    //    if (Camera.main.orthographicSize == NetworkOrtographicSize)
-    //    {
-    //        if (SimulationManagerInstance.VirusSources.Contains(hit.collider.gameObject))
-    //        {
-    //            Camera.main.orthographicSize = NodeOrtographicSize;
-    //            Camera.main.transform.position = hit.transform.position;
-    //            VisualizingNode = hit.collider.gameObject;
-    //            OnShowNodeInfo.Invoke(VisualizingNode.GetComponent<Node>());
-    //        }
-    //        Debug.Log("LV0");
-    //        Camera.main.orthographicSize = RegionOrtographicSize;
-    //        Camera.main.transform.position = hit.transform.position;
-    //        VisualizingRegion = hit.collider.gameObject;
-    //        Region r = hit.collider.transform.GetChild(0).gameObject.GetComponent<Node>().RegionData;
-    //        Debug.Log(r);
-    //        OnShowRegionInfo.Invoke(r);
-    //    }
-    //    else if (Camera.main.orthographicSize == RegionOrtographicSize && hit.collider.gameObject.TryGetComponent(out Node n))
-    //    {
-    //        Debug.Log("LV1");
-    //        Camera.main.orthographicSize = NodeOrtographicSize;
-    //        Camera.main.transform.position = hit.transform.position;
-    //        VisualizingNode = hit.collider.gameObject;
-    //        OnShowNodeInfo.Invoke(n);
-    //    }
-    //    else return;
-    //}
 
-    //private void ZoomOut() //funzionante
-    //{
-    //    Debug.Log("zooming out");
-    //    if (Camera.main.orthographicSize == NodeOrtographicSize)
-    //    {
-    //        Camera.main.transform.position = VisualizingRegion.transform.position;
-    //        Camera.main.orthographicSize = RegionOrtographicSize;
-    //        NodePanel.SetActive(false);
-    //    }
-    //    else if (Camera.main.orthographicSize == RegionOrtographicSize)
-    //    {
-    //        Camera.main.transform.position = _originalPosition;
-    //        Camera.main.orthographicSize = NetworkOrtographicSize;
-    //        RegionPanel.SetActive(false);
-    //    }
-    //    else return;
-
-    //}
     private void OpenNodeInfoPanel(Node nodeData)
     {
         //CanvasRenderer[] fields = gameObject.GetComponentsInChildren<CanvasRenderer>(includeInactive: true);
@@ -530,15 +495,11 @@ public class SimulationVisualizer : MonoBehaviour
 
         for (int i = values.Offset; i < values.Offset + values.Count; i++)
         {
-            //Debug.Log(values.Array.ElementAt(i) == values.ElementAt(i - values.Offset));
 
             positions.Add(new Vector3(
                             x: Mathf.Lerp(minHzX, maxHzX, (float)i / NumberOfFrequencies),
-                            y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(values.ElementAt(i - values.Offset) / 5)), // ANALIZZARE
+                            y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(values.ElementAt(i - values.Offset) / 5)), // ANALIZZARE - OK
                             z: 0));
-            //spectrumPositions[i].x = Mathf.Lerp(minHzX, maxHzX, (float)(firstValueIndex + i) / NumberOfFrequencies);
-            //spectrumPositions[i].y = Mathf.Lerp(minPercentageY, maxPercentageY, notMinValues[j] / 5);
-            //spectrumPositions[i].z = 0;
         }
         positions.Add(new Vector3(
             x: Mathf.Lerp(minHzX, maxHzX, (float)(values.Offset + values.Count) / NumberOfFrequencies),
@@ -623,16 +584,16 @@ public class SimulationVisualizer : MonoBehaviour
                 if (inChunk)
                 {
                     chunkEndIndex = i-1;
-                    Debug.Log("(" + i + ", " + waveform[i] + ")");
+                    //Debug.Log("(" + i + ", " + waveform[i] + ")");
                     ArraySegment<double> chunk = new(waveform, chunkStartIndex, chunkEndIndex - chunkStartIndex + 1);
-                    UnityEngine.Debug.Log("found chunk from index " + chunkStartIndex + " to " + chunkEndIndex);
+                    //UnityEngine.Debug.Log("found chunk from index " + chunkStartIndex + " to " + chunkEndIndex);
                     notMinValuesChunks.Add(chunk);
                     inChunk = false;
                 }
             }
             else
             {
-                Debug.Log("(" + i + ", " + waveform[i] + ")");
+                //Debug.Log("(" + i + ", " + waveform[i] + ")");
                 if (!inChunk)
                 {
                     chunkStartIndex = i;
@@ -640,17 +601,39 @@ public class SimulationVisualizer : MonoBehaviour
                 }
             }
         }
-        Debug.Log("found " + notMinValuesChunks.Count + " chunks");
+        //Debug.Log("found " + notMinValuesChunks.Count + " chunks");
         return notMinValuesChunks;
+    }
+    private Vector3[] UpdateWaveformGraphicsTask(List<ArraySegment<double>> notMinValuesChunks, double min)
+    {
+        List<Vector3> spectrumPositions = new()
+            {
+                new Vector3(
+                x: minHzX,
+                y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
+                z: 0)
+            };
+
+        foreach (ArraySegment<double> chunk in notMinValuesChunks)
+        {
+            // ogni chiamata a questa funzione genera i due punti minimi di delimitazione di ogni picco
+            spectrumPositions.AddRange(CreateWaveformGraphicsSegment(chunk, min));
+        }
+        spectrumPositions.Add(new Vector3(
+            x: maxHzX,
+            y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
+            z: 0)
+        );
+        return spectrumPositions.ToArray();
     }
     public async void UpdateWaveformGraphicsAsync(bool isNode)
     {
         LineRenderer spectrumLine;
         double[] waveformToDisplay;
-        float minHzX = -607f;
-        float maxHzX = 607f;
-        float minPercentageY = -97f;
-        float maxPercentageY = 97f;
+        //float minHzX = -607f;
+        //float maxHzX = 607f;
+        //float minPercentageY = -97f;
+        //float maxPercentageY = 97f;
         if (isNode) {
             spectrumLine = NodePanel.GetComponentInChildren<LineRenderer>();
             waveformToDisplay = VisualizingNode.GetComponent<Node>().Tone.GetSpectrum(gameObject);
@@ -660,37 +643,16 @@ public class SimulationVisualizer : MonoBehaviour
             waveformToDisplay = VisualizingRegion.GetComponent<Region>().RegionWaveform.GetSpectrum(gameObject);
         }
         double min = waveformToDisplay.Min();
-        Debug.Log(min);
 
         List<ArraySegment<double>> notMinValuesChunks = GetChunks(waveformToDisplay, min);
-        spectrumLine.positionCount = 2;
+        // !!!!!!
+        int newPositionCount = 2;
         foreach (ArraySegment<double> chunk in notMinValuesChunks)
         {
-            spectrumLine.positionCount += chunk.Count + 2;
+            newPositionCount += chunk.Count + 2;
         }
-        Vector3[] spectrumPositions = await Task.Run(() =>
-        {
-            List<Vector3> spectrumPositions = new()
-            {
-                new Vector3(
-                x: minHzX,
-                y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
-                z: 0)
-            };
-
-            foreach (ArraySegment<double> chunk in notMinValuesChunks)
-            {
-                // ogni chiamata a questa funzione genera i due punti minimi di delimitazione di ogni picco
-                spectrumPositions.AddRange(CreateWaveformGraphicsSegment(chunk, min));
-            }
-            spectrumPositions.Add(new Vector3(
-                x: maxHzX,
-                y: Mathf.Lerp(minPercentageY, maxPercentageY, (float)(min / 5)),
-                z: 0)
-            );
-
-            return spectrumPositions.ToArray(); 
-        });
+        Vector3[] spectrumPositions = await Task.Run(() => { return UpdateWaveformGraphicsTask(notMinValuesChunks, min); });
+        spectrumLine.positionCount = newPositionCount;
         spectrumLine.SetPositions(spectrumPositions);
     }
     //public async void UpdateWaveformGraphicsAsync(bool isNode) //funzionante
