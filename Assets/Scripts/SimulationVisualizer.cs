@@ -42,8 +42,6 @@ public class SimulationVisualizer : MonoBehaviour
     public readonly int NodeOrtographicSize = 5;
     public GameObject VisualizingRegion;
     public GameObject VisualizingNode;
-    private GameObject _lastRegionVisualized;
-    private GameObject _lastNodeVisualized;
     private List<(Vector3 position, Region region)> _meshGrid;
     private GameObject _regions;
     private Vector3 _originalPosition;

@@ -73,7 +73,7 @@ public class SimulationManager : MonoBehaviour
         //Node infected = _virusSource.AddComponent<Node>();
         //Destroy(_virusSource.GetComponent<Healthy>());
         //Infected status = _virusSource.AddComponent<Infected>();
-        //status.Setup(UnityEngine.Random.Range(1f, 10f));
+        //status.Setup(UnityEngine.Random.Rangex(1f, 10f));
         //infected.Status = status;
         //_virusSource.SetActive(true);
         //Debug.Log("simulation initialized");
