@@ -27,6 +27,12 @@ public class SimulationManager : MonoBehaviour
     public LayerMask VirusLayer;
     public Waveform VirusWaveform;
     public List<GameObject> VirusSources;
+    public int EstablishedEncounters = 0;
+    public float TotalTimeElapsed = 0;
+    public float FinalTime = 0;
+    public int Victims = 0;
+    public int TotalPacketsSent = 0;
+    public bool AnySurvivors = true;
     //private GameObject _virusSource;
     //[SerializeField] private List<GameObject> _encounterList;
     //public List<GameObject> EncounterList
@@ -168,6 +174,20 @@ public class SimulationManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        TotalTimeElapsed += Time.deltaTime;
+        AnySurvivors = false;
+        foreach (Region region in RegionList)
+        {
+            foreach (Node node in region.NodeList)
+            {
+                if (node.Status is Healthy) 
+                {
+                    AnySurvivors = true;
+                    break;
+                }
+            }
+            if (AnySurvivors) break;
+        }
+        if (!AnySurvivors && FinalTime == 0) FinalTime = TotalTimeElapsed;
     }
 }

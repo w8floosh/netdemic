@@ -116,7 +116,7 @@ public class Node : MonoBehaviour, INode
             encounterObject = child.gameObject;
         }
         encounterObject.SetActive(true);
-
+        SimulationManagerInstance.EstablishedEncounters++;
         return encounterObject;
     }
     public void PackageEnqueue(Package p)
@@ -170,7 +170,9 @@ public class Node : MonoBehaviour, INode
                 && n.Status is not Infected)
             {
                 if (_randomGenerator.NextDouble() < SimulationManagerInstance.EncounterChance)
+                {
                     newEncounters.Add(EstablishConnection(n.gameObject));
+                }
             }
         }
         if (newEncounters.Count > 0) CurrentEncounters.AddRange(newEncounters);
@@ -204,6 +206,7 @@ public class Node : MonoBehaviour, INode
                     //toSend ??= new(SimulationManagerInstance.LastPacketSentID, Name, ec.Destination.Name, ec.Destination.RegionData.RegionID, (byte)UnityEngine.Random.Range(0, 256), _tone);
                     //Debug.Log("created package with ID: " + toSend.ID);
                     Status.SendPackage(ec, toSend);
+                    SimulationManagerInstance.TotalPacketsSent++;
                 }
             }
         }
@@ -301,6 +304,7 @@ public class Node : MonoBehaviour, INode
         {
             Status = gameObject.AddComponent<Healthy>();
             ResistanceLimit = (byte)UnityEngine.Random.Range(8, 16);
+            SimulationManagerInstance.Victims++;
         }
         else
         {
