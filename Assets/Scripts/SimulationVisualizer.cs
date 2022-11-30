@@ -1,7 +1,3 @@
-using JetBrains.Annotations;
-using PlasticPipe.PlasticProtocol.Messages;
-using System.CodeDom;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -12,14 +8,7 @@ using static InterfaceComponent;
 using static SimulationManager;
 using UnityEngine.UI;
 using System;
-using MathNet.Numerics.Statistics;
-using static System.Net.Mime.MediaTypeNames;
-using System.Drawing.Drawing2D;
-using Unity.Jobs;
-using Unity.Collections;
 using System.Threading.Tasks;
-using NugetForUnity;
-using GluonGui.Dialog;
 
 public class SimulationVisualizer : MonoBehaviour
 {

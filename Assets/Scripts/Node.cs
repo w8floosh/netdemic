@@ -8,9 +8,6 @@ using static SimulationManager;
 using static SimulationVisualizer;
 using System.Linq;
 using UnityEngine.Pool;
-using UnityEngine.Events;
-using UnityEngine.InputSystem;
-using UnityEngine.U2D;
 
 public class Node : MonoBehaviour, INode
 {

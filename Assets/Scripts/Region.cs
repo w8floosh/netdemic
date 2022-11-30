@@ -1,14 +1,7 @@
 using System;
-using System.CodeDom;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Events;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.InputSystem;
-using UnityEngine.UI;
 using static SimulationManager;
-using static SimulationVisualizer;
 
 [Serializable]
 public class Region : MonoBehaviour

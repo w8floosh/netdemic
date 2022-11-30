@@ -1,9 +1,7 @@
 using System;
 using System.Linq;
 using System.Security;
-using Unity.Jobs;
 using UnityEngine;
-using UnityEngine.U2D;
 using static SimulationManager;
 using static SimulationVisualizer;
 using GaussianDistribution = MathNet.Numerics.Distributions.Normal;

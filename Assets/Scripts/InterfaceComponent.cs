@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static SimulationManager;
 
 public class InterfaceComponent
 {
